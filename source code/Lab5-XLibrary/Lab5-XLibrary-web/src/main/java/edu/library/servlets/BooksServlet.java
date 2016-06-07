@@ -6,6 +6,7 @@ import edu.library.beans.entity.Genre;
 import edu.library.beans.dao.GenreDAO;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,7 @@ public class BooksServlet extends HttpServlet
 {
     
     private static final String ACTION = "action",
-            DELETE_ACTION = "delete", COPY_ACTION = "copy";
+            DELETE_ACTION = "delete", COPY_ACTION = "copy", EXPORT_ACTION = "export-xml";
     private static final String SEARCH_FILTER = "search", GENRE_FILTER = "genre",
             SORTING_FIELD = "sortField", SORTING_ORDER = "sortOrder", UP_SORTING_ORDER = "up";
     private static final String SELECTED_BOOKS = "param[]";
@@ -88,6 +89,7 @@ public class BooksServlet extends HttpServlet
                 return;
             }
             
+            // Получаем массив id книг, которые выбрал пользователь
             int[] bookIds = new int[bookIdsString.length];
             for(int i = 0; i < bookIdsString.length; i++)
             {
@@ -101,6 +103,12 @@ public class BooksServlet extends HttpServlet
             } else if (COPY_ACTION.equals(action))
             {
                 bookDAO.copy(bookIds);
+            } else if (EXPORT_ACTION.equals(action))
+            {
+                // Здесь пользователь выбрал какие книги экпортировать
+                // передать в бизнес-логику массив id книг bookIds
+                request.setAttribute(ERR_MSG,
+                        "Для экспорта были выбраны id: " + Arrays.toString(bookIds));
             }
         } catch (final SQLException ex)
         {
