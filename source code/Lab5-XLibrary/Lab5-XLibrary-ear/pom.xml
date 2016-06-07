@@ -2,17 +2,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-    <artifactId>Lab4-Library</artifactId>
+    <artifactId>Lab5-XLibrary</artifactId>
     <groupId>edu.library</groupId>
     <version>1.0.0</version>
   </parent>
 
     <groupId>edu.library</groupId>
-    <artifactId>Lab4-Library-ear</artifactId>
+    <artifactId>Lab5-XLibrary-ear</artifactId>
     <version>1.0.0</version>
     <packaging>ear</packaging>
 
-    <name>Lab4-Library-ear</name>
+    <name>Lab5-XLibrary-ear</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -43,13 +43,13 @@
     <dependencies>
         <dependency>
             <groupId>edu.library</groupId>
-            <artifactId>Lab4-Library-ejb</artifactId>
+            <artifactId>Lab5-XLibrary-ejb</artifactId>
             <version>1.0.0</version>
             <type>ejb</type>
         </dependency>
         <dependency>
             <groupId>edu.library</groupId>
-            <artifactId>Lab4-Library-web</artifactId>
+            <artifactId>Lab5-XLibrary-web</artifactId>
             <version>1.0.0</version>
             <type>war</type>
         </dependency>

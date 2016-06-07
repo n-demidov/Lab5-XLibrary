@@ -2,17 +2,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-    <artifactId>Lab4-Library</artifactId>
+    <artifactId>Lab5-XLibrary</artifactId>
     <groupId>edu.library</groupId>
     <version>1.0.0</version>
   </parent>
 
     <groupId>edu.library</groupId>
-    <artifactId>Lab4-Library-web</artifactId>
+    <artifactId>Lab5-XLibrary-web</artifactId>
     <version>1.0.0</version>
     <packaging>war</packaging>
 
-    <name>Lab4-Library-web</name>
+    <name>Lab5-XLibrary-web</name>
 
     <properties>
         <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
@@ -20,10 +20,10 @@
     </properties>
     
     <dependencies>
-        <!-- add "Lab4-Library" EJB-module -->
+        <!-- add "Lab5-XLibrary" EJB-module -->
         <dependency>
             <groupId>edu.library</groupId>
-            <artifactId>Lab4-Library-ejb</artifactId>
+            <artifactId>Lab5-XLibrary-ejb</artifactId>
             <version>1.0.0</version>
             <type>ejb</type>
             <scope>provided</scope>

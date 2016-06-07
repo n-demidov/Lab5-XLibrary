@@ -2,13 +2,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>edu.library</groupId>
-  <artifactId>Lab4-Library</artifactId>
+  <artifactId>Lab5-XLibrary</artifactId>
   <version>1.0.0</version>
   <packaging>pom</packaging>
-  <name>Lab4-Library</name>
+  <name>Lab5-XLibrary</name>
   <modules>
-    <module>Lab4-Library-ear</module>
-    <module>Lab4-Library-web</module>
-    <module>Lab4-Library-ejb</module>
+    <module>Lab5-XLibrary-ear</module>
+    <module>Lab5-XLibrary-web</module>
+    <module>Lab5-XLibrary-ejb</module>
   </modules>
 </project>

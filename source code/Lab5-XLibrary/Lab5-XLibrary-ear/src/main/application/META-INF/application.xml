@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <application xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/application_6.xsd" version="6">
-  <display-name>Lab4-Library-ear</display-name>
+  <display-name>Lab5-XLibrary-ear</display-name>
   <module>
-    <ejb>Lab4-Library-ejb-1.0.0.jar</ejb>
+    <ejb>Lab5-XLibrary-ejb-1.0.0.jar</ejb>
   </module>
   <module>
     <web>
-      <web-uri>Lab4-Library-web-1.0.0.war</web-uri>
+      <web-uri>Lab5-XLibrary-web-1.0.0.war</web-uri>
       <context-root>/library</context-root>
     </web>
   </module>
