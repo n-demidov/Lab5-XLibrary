@@ -30,7 +30,7 @@ standalone.bat --server-config=standalone-library.xml
 
 В консоли администратора для DataSource "MySqlDS" указать свой логин и пароль от СУБД MySQL.
 
-4. Развернуть приложение (Deployments -> Add в консоли администратора WildFly, файл Lab4-Library-ear-1.0.0.ear)
+4. Развернуть приложение (Deployments -> Add в консоли администратора WildFly, файл Lab5-XLibrary-ear-1.0.0.ear)
 
 5. Запустить приложение в браузере: http://localhost:8080/library/
 
