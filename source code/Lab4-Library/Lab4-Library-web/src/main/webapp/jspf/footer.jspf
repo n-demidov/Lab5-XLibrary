@@ -1,0 +1,7 @@
+<%@page pageEncoding="UTF-8"%>
+
+    <!-- js-файлы -->
+    <script src="js/jquery-2.2.3.min.js"></script>
+
+    </body>
+</html>
