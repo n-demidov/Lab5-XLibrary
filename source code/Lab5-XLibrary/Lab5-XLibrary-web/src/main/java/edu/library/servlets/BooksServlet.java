@@ -1,10 +1,12 @@
 package edu.library.servlets;
 
+import edu.library.XMLConverter;
 import edu.library.beans.entity.Book;
 import edu.library.beans.dao.BookDAO;
 import edu.library.beans.entity.Genre;
 import edu.library.beans.dao.GenreDAO;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -30,12 +32,16 @@ public class BooksServlet extends HttpServlet
     private static final String SELECTED_BOOKS = "param[]";
     private static final String ERROR_WHILE_OPERATIONS = "При выполнении операции возникла ошибка: %s";
     private static final String ERR_MSG = "errMsg";
+    private static final String EXPORT_FILE_NAME = "books.xml";
     
     @EJB
     private BookDAO bookDAO;
     
     @EJB
     private GenreDAO genreDAO;
+    
+    @EJB
+    private XMLConverter converter;
     
     private static final Map<String, BookDAO.SortBy> ORDER_VALUES;  // предопределённые значения сортировки списка книг
     
@@ -107,8 +113,30 @@ public class BooksServlet extends HttpServlet
             {
                 // Здесь пользователь выбрал какие книги экпортировать
                 // передать в бизнес-логику массив id книг bookIds
-                request.setAttribute(ERR_MSG,
-                        "Для экспорта были выбраны id: " + Arrays.toString(bookIds));
+                
+                String booksXml = converter.convertBooks(bookIds);
+                
+                response.setCharacterEncoding("UTF-8");
+                
+                try (PrintWriter out = response.getWriter()) {
+                    response.setHeader("Content-Type", "text/xml");
+                    response.setHeader("Content-Description", "File Transfer");
+                    response.setContentType("application/octet-stream");
+                    response.setHeader( "Content-Disposition",
+                        String.format("attachment; filename=\"%s\"", EXPORT_FILE_NAME));
+                    
+                    response.setHeader("Content-Transfer-Encoding", "binary");
+                    response.setHeader("Connection", "Keep-Alive");
+                    response.setHeader("Expires", "0");
+                    response.setHeader("Cache-Control", "must-revalidate, post-check=0, pre-check=0");
+                    response.setHeader("Pragma", "public");
+                    response.setHeader("Content-Length", String.valueOf(booksXml));
+//                    response.setContentLength(booksXml.length());
+                    
+                    out.write(booksXml);
+                }
+                
+                System.out.println(booksXml);
             }
         } catch (final SQLException ex)
         {
