@@ -1,12 +1,12 @@
 package edu.library.servlets;
 
+import edu.library.beans.persistence.GenreDatastore;
 import edu.library.beans.entity.Book;
-import edu.library.beans.dao.BookDAO;
 import edu.library.beans.entity.Genre;
-import edu.library.beans.dao.GenreDAO;
+import edu.library.beans.persistence.BookDatastore;
+import edu.library.exceptions.db.PersistException;
 import java.io.IOException;
-import java.sql.SQLException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,24 +32,24 @@ public class BooksServlet extends HttpServlet
     private static final String ERR_MSG = "errMsg";
     
     @EJB
-    private BookDAO bookDAO;
+    private BookDatastore bookDatastore;
     
     @EJB
-    private GenreDAO genreDAO;
+    private GenreDatastore genreDatastore;
     
-    private static final Map<String, BookDAO.SortBy> ORDER_VALUES;  // предопределённые значения сортировки списка книг
+    private static final Map<String, BookDatastore.SortBy> ORDER_VALUES;  // предопределённые значения сортировки списка книг
     
     static
     {
         ORDER_VALUES = new LinkedHashMap<>();
-        ORDER_VALUES.put("ID", BookDAO.SortBy.ID);
-        ORDER_VALUES.put("Название", BookDAO.SortBy.Name);
-        ORDER_VALUES.put("Жанр", BookDAO.SortBy.Genre);
-        ORDER_VALUES.put("Автор", BookDAO.SortBy.Author);
-        ORDER_VALUES.put("Издатель", BookDAO.SortBy.Publisher);
-        ORDER_VALUES.put("ISBN", BookDAO.SortBy.ISBN);
-        ORDER_VALUES.put("Кол-во страниц", BookDAO.SortBy.PageCount);
-        ORDER_VALUES.put("Описание", BookDAO.SortBy.Description);
+        ORDER_VALUES.put("ID", BookDatastore.SortBy.ID);
+        ORDER_VALUES.put("Название", BookDatastore.SortBy.Name);
+        ORDER_VALUES.put("Жанр", BookDatastore.SortBy.Genre);
+        ORDER_VALUES.put("Автор", BookDatastore.SortBy.Author);
+        ORDER_VALUES.put("Издатель", BookDatastore.SortBy.Publisher);
+        ORDER_VALUES.put("ISBN", BookDatastore.SortBy.ISBN);
+        ORDER_VALUES.put("Кол-во страниц", BookDatastore.SortBy.PageCount);
+        ORDER_VALUES.put("Описание", BookDatastore.SortBy.Description);
     }
 
     /**
@@ -90,27 +90,27 @@ public class BooksServlet extends HttpServlet
             }
             
             // Получаем массив id книг, которые выбрал пользователь
-            int[] bookIds = new int[bookIdsString.length];
+            final List<Long> bookIds = new ArrayList<>(bookIdsString.length);
             for(int i = 0; i < bookIdsString.length; i++)
             {
-               bookIds[i] = Integer.parseInt(bookIdsString[i]);
+               bookIds.add(Long.parseLong(bookIdsString[i]));
             }
             
             // Выполняем действие
             if (DELETE_ACTION.equals(action))
             {
-                bookDAO.delete(bookIds);
+                bookDatastore.delete(bookIds);
             } else if (COPY_ACTION.equals(action))
             {
-                bookDAO.copy(bookIds);
+                bookDatastore.copy(bookIds);
             } else if (EXPORT_ACTION.equals(action))
             {
                 // Здесь пользователь выбрал какие книги экпортировать
                 // передать в бизнес-логику массив id книг bookIds
                 request.setAttribute(ERR_MSG,
-                        "Для экспорта были выбраны id: " + Arrays.toString(bookIds));
+                        "Для экспорта были выбраны id: " + bookDatastore.get(bookIds));
             }
-        } catch (final SQLException ex)
+        } catch (final PersistException ex)
         {
             Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
             request.setAttribute(ERR_MSG, String.format(ERROR_WHILE_OPERATIONS, ex.getLocalizedMessage()));
@@ -143,19 +143,17 @@ public class BooksServlet extends HttpServlet
             final String genreFilterParam = request.getParameter(GENRE_FILTER);
             final String sortingField = request.getParameter(SORTING_FIELD);
             final String sortingOrder = request.getParameter(SORTING_ORDER);
-            final Integer genreFilter
+            final Long genreFilter
                     = (genreFilterParam == null || genreFilterParam.length() == 0)
-                    ? null : Integer.parseInt(genreFilterParam);
+                    ? null : Long.parseLong(genreFilterParam);
             
-            
-            final List<Genre> genres = genreDAO.getAll();
-            
-            final List<Book> books = bookDAO.getByFilter(
+            final List<Genre> genres = genreDatastore.getAll();
+            final List<Book> books = bookDatastore.getByFilter(
                     searchFilter,
                     genreFilter,
                     getSorting(sortingField),
                     UP_SORTING_ORDER.equals(sortingOrder)
-                            ? BookDAO.SortOrder.Desc : BookDAO.SortOrder.Asc);
+                        ? BookDatastore.SortOrder.Desc : BookDatastore.SortOrder.Asc);
             
             request.setAttribute("books", books);
             request.setAttribute("genres", genres);
@@ -163,7 +161,7 @@ public class BooksServlet extends HttpServlet
             request.setAttribute("fullURI", getFullURI(request));
             
             request.getRequestDispatcher("/books.jsp").forward(request, response);
-        } catch (final SQLException ex)
+        } catch (final PersistException ex)
         {
             Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
             request.setAttribute(ERR_MSG, String.format(ERROR_WHILE_OPERATIONS, ex.getLocalizedMessage()));
@@ -171,10 +169,10 @@ public class BooksServlet extends HttpServlet
     }
     
     // Возвращает сортировку
-    private BookDAO.SortBy getSorting(final String inputSortField)
+    private BookDatastore.SortBy getSorting(final String inputSortField)
     {
-        BookDAO.SortBy field = ORDER_VALUES.getOrDefault(inputSortField, null);
-        if (field == null) field = BookDAO.SortBy.ID;
+        BookDatastore.SortBy field = ORDER_VALUES.getOrDefault(inputSortField, null);
+        if (field == null) field = BookDatastore.SortBy.ID;
         return field;
     }
     

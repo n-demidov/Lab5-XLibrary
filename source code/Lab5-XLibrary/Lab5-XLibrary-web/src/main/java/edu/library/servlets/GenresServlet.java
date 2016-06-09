@@ -1,9 +1,9 @@
 package edu.library.servlets;
 
+import edu.library.beans.persistence.GenreDatastore;
 import edu.library.beans.entity.Genre;
-import edu.library.beans.dao.GenreDAO;
+import edu.library.exceptions.db.PersistException;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,7 +19,7 @@ public class GenresServlet extends HttpServlet
 {
     
     @EJB
-    private GenreDAO genreDAO;
+    private GenreDatastore genreDatastore;
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -38,14 +38,14 @@ public class GenresServlet extends HttpServlet
             request.setCharacterEncoding("UTF-8");
             
             // Получаем GET-параметр
-            final List<Genre> genres = genreDAO.getAll();
+            final List<Genre> genres = genreDatastore.getAll();
             
             request.setAttribute("genres", genres);
             
             request.getRequestDispatcher("/genres.jsp").forward(request, response);
-        } catch (final SQLException ex)
+        } catch (final PersistException ex)
         {
-            Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(GenresServlet.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 

@@ -1,15 +1,15 @@
 package edu.library.servlets;
 
 import edu.library.Constants;
+import edu.library.beans.persistence.GenreDatastore;
 import edu.library.beans.entity.Book;
-import edu.library.beans.dao.BookDAO;
 import edu.library.beans.entity.Genre;
-import edu.library.beans.dao.GenreDAO;
+import edu.library.beans.persistence.BookDatastore;
 import edu.library.exceptions.ParseIntException;
 import edu.library.exceptions.ValidationException;
 import edu.library.exceptions.db.NoSuchEntityInDB;
+import edu.library.exceptions.db.PersistException;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.logging.Level;
 import javax.ejb.EJB;
@@ -35,10 +35,10 @@ public class BookServlet extends HttpServlet
     private static final String BOOK_ID_ERR = "Неправильный формат id книги";
     
     @EJB
-    private BookDAO bookDAO;
+    private BookDatastore bookDatastore;
     
     @EJB
-    private GenreDAO genreDAO;
+    private GenreDatastore genreDatastore;
 
     /**
      * Обрабатывает запросы пользователя на просмотр страницы редактирование\добавление книги
@@ -61,11 +61,11 @@ public class BookServlet extends HttpServlet
             if (!PAGE_TYPE_ADD.equals(pageType))
             {
                 // Во всех остальных случаях - edit
-                final int bookId = Integer.parseInt(request.getParameter("id"));
-                book = bookDAO.get(bookId);
+                final long bookId = Integer.parseInt(request.getParameter("id"));
+                book = bookDatastore.get(bookId);
                 isAddBook = false;
             }
-        } catch (final NumberFormatException | SQLException ex)
+        } catch (final NumberFormatException | PersistException ex)
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
             request.setAttribute("errMsg", ex.getMessage());
@@ -95,35 +95,34 @@ public class BookServlet extends HttpServlet
         try
         {
             final String submitType = request.getParameter("submit_type");
-            final String bookIdString = request.getParameter(BookDAO.BOOK_ID);
+            final String idString = request.getParameter(BookDatastore.BOOK_ID);
+            final Long bookId = (idString == null || idString.isEmpty())
+                    ? null : Long.parseLong(idString);
+            isAddBook = (bookId == null);
             
-            final int bookId = (bookIdString == null || bookIdString.isEmpty())
-                    ? 0 : parseInt(bookIdString, BOOK_ID_ERR);
-            isAddBook = (bookId == 0);
+            // Заполняем объект книги данными
+            if (!isAddBook)
+            {
+                book = bookDatastore.get(bookId);
+            }
+            book.setId(bookId);
+            fillBookFromRequest(book, request);
             
             // Если пользователь нажал удалить - удаляем книгу по id
             if (DELETE.equals(submitType))
             {
-                bookDAO.delete(bookId);
+                bookDatastore.delete(bookId);
                 response.sendRedirect(Constants.REDIRECT_BOOKS_PAGE);
                 return;
             }
 
-            // Заполняем объект книги данными
-            if (!isAddBook)
-            {
-                book = bookDAO.get(bookId);
-            }
-            book.setId(bookId);
-            fillBookFromRequest(book, request);
-
             // Делаем операции
             if (isAddBook)
             {
-                bookDAO.create(book);
+                bookDatastore.create(book);
             } else
             {
-                bookDAO.update(book);
+                bookDatastore.update(book);
             }
 
             // Перенаправляем польз-ля на нужную ему страницу
@@ -144,7 +143,7 @@ public class BookServlet extends HttpServlet
             {
                 response.sendRedirect(Constants.REDIRECT_BOOKS_PAGE);     // редирект на страницу списка книг
             }
-        } catch (final NumberFormatException | ParseIntException | ValidationException | SQLException ex)
+        } catch (final NumberFormatException | ValidationException | PersistException ex)
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
             
@@ -173,7 +172,7 @@ public class BookServlet extends HttpServlet
         {
             request.setCharacterEncoding("UTF-8");
             
-            final List<Genre> genres = genreDAO.getAll();
+            final List<Genre> genres = genreDatastore.getAll();
             
             request.setAttribute("genres", genres);
             request.setAttribute("book", book);
@@ -181,7 +180,7 @@ public class BookServlet extends HttpServlet
             request.setAttribute("fullUrl", getFullURI(request));
 
             request.getRequestDispatcher("/book.jsp").forward(request, response);
-        } catch (final SQLException ex)
+        } catch (final PersistException ex)
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
             
@@ -214,17 +213,17 @@ public class BookServlet extends HttpServlet
         boolean isError = false;
         String error = "";
 
-        book.setName(request.getParameter(BookDAO.BOOK_NAME).trim());
-        book.setAuthor(request.getParameter(BookDAO.BOOK_AUTHOR).trim());
-        book.setPublisher(request.getParameter(BookDAO.BOOK_PUBLISHER).trim());
+        book.setName(request.getParameter(BookDatastore.BOOK_NAME).trim());
+        book.setAuthor(request.getParameter(BookDatastore.BOOK_AUTHOR).trim());
+        book.setPublisher(request.getParameter(BookDatastore.BOOK_PUBLISHER).trim());
 
         // Разбираем жанр
         try
         {
-            final int genreId = parseInt(request.getParameter(GENRE_ID), GENRE_ERR);
-            final Genre genre = genreDAO.get(genreId);
+            final Long genreId = (long) parseInt(request.getParameter(GENRE_ID), GENRE_ERR);
+            final Genre genre = genreDatastore.get(genreId);
             book.setGenre(genre);
-        } catch (final SQLException | NoSuchEntityInDB | ParseIntException ex)
+        } catch (final NoSuchEntityInDB | ParseIntException | PersistException ex)
         {
             isError = true;
             error = ex.getLocalizedMessage();
@@ -234,15 +233,15 @@ public class BookServlet extends HttpServlet
         try
         {
         book.setPageCount(parseInt(
-                request.getParameter(BookDAO.BOOK_PAGE_COUNT), PAGE_COUNT_ERR));
+                request.getParameter(BookDatastore.BOOK_PAGE_COUNT), PAGE_COUNT_ERR));
         } catch (final ParseIntException ex)
         {
             isError = true;
             error = ex.getLocalizedMessage();
         }
 
-        book.setIsbn(request.getParameter(BookDAO.BOOK_ISBN).trim());
-        book.setDescription(request.getParameter(BookDAO.BOOK_DESCRIPTION).trim());
+        book.setIsbn(request.getParameter(BookDatastore.BOOK_ISBN).trim());
+        book.setDescription(request.getParameter(BookDatastore.BOOK_DESCRIPTION).trim());
 
         // Если были ошибки
         if (isError)
