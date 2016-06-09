@@ -1,12 +1,12 @@
 package edu.library.servlets;
 
 import edu.library.Constants;
+import edu.library.beans.persistence.GenreDatastore;
 import edu.library.beans.entity.Genre;
-import edu.library.beans.dao.GenreDAO;
 import edu.library.exceptions.ValidationException;
 import edu.library.exceptions.db.NoSuchEntityInDB;
+import edu.library.exceptions.db.PersistException;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.logging.Level;
 import javax.ejb.EJB;
@@ -23,7 +23,7 @@ public class GenreServlet extends HttpServlet
     private final String PAGE_TYPE = "type", PAGE_TYPE_ADD = "add";
 
     @EJB
-    private GenreDAO genreDAO;
+    private GenreDatastore genreDatastore;
 
     /**
      * Handles the HTTP <code>GET</code> method.
@@ -46,15 +46,15 @@ public class GenreServlet extends HttpServlet
             if (!PAGE_TYPE_ADD.equals(pageType))
             {
                 // Во всех остальных случаях - edit
-                final int genreId = Integer.parseInt(request.getParameter("id"));
-                genre = genreDAO.get(genreId);
+                final Long genreId = Long.parseLong(request.getParameter("id"));
+                genre = genreDatastore.get(genreId);
                 isAddGenre = false;
             }
-        } catch (final NumberFormatException | SQLException ex)
+        } catch (final NumberFormatException | PersistException ex)
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
             request.setAttribute("errMsg", ex.getMessage());
-        } catch (NoSuchEntityInDB ex)
+        } catch (final NoSuchEntityInDB ex)
         {
             response.sendRedirect(Constants.REDIRECT_GENRES_PAGE);
         }
@@ -86,29 +86,29 @@ public class GenreServlet extends HttpServlet
         try
         {
             final String submitType = request.getParameter("submit_type");
-            final String idString = request.getParameter(GenreDAO.GENRE_ID);
+            final String idString = request.getParameter(GenreDatastore.GENRE_ID);
+            final Long genreId = idString.isEmpty() ? null : Long.parseLong(idString);
+            isAddGenre = (genreId == null);
 
-            final int genreId = idString.isEmpty() ? 0 : Integer.parseInt(idString);
-            isAddGenre = (genreId == 0);
-
+            // Считываем параметры
+            genre = new Genre(
+                    genreId,
+                    request.getParameter(GenreDatastore.GENRE_NAME));
+            
             // Если пользователь нажал удалить - удаляем книгу по id
             if (DELETE.equals(submitType))
             {
-                genreDAO.delete(genreId);
+                genreDatastore.delete(genreId);
                 response.sendRedirect(Constants.REDIRECT_GENRES_PAGE);
                 return;
             }
 
-            // Считываем параметры
-            genre = new Genre(
-                    genreId, request.getParameter(GenreDAO.GENRE_NAME));
-
             if (isAddGenre)
             {
-                genreDAO.create(genre);
+                genreDatastore.create(genre);
             } else
             {
-                genreDAO.update(genre);
+                genreDatastore.update(genre);
             }
 
             // Перенаправляем польз-ля на нужную ему страницу
@@ -129,7 +129,7 @@ public class GenreServlet extends HttpServlet
             {
                 response.sendRedirect(Constants.REDIRECT_GENRES_PAGE);     // редирект на страницу списка книг
             }
-        } catch (final NumberFormatException | SQLException | ValidationException ex)
+        } catch (final NumberFormatException | PersistException | ValidationException ex)
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
             request.setAttribute("errMsg", ex.getMessage());
@@ -152,12 +152,12 @@ public class GenreServlet extends HttpServlet
     {
         try
         {
-            final List<Genre> genres = genreDAO.getAll();
+            final List<Genre> genres = genreDatastore.getAll();
             
             request.setAttribute("genre", genre);
             request.setAttribute("genres", genres);
             request.setAttribute("isAddGenre", isAddGenre);
-        } catch (final SQLException ex)
+        } catch (final PersistException ex)
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
             request.setAttribute("errMsg", ex.getMessage());
