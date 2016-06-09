@@ -1,7 +1,7 @@
 package edu.library.servlets;
 
 import edu.library.beans.persistence.GenreDatastore;
-import edu.library.XMLConverter;
+import edu.library.beans.xml.converter.XMLConverter;
 import edu.library.beans.entity.Book;
 import edu.library.beans.entity.Genre;
 import edu.library.beans.persistence.BookDatastore;
@@ -9,8 +9,6 @@ import edu.library.exceptions.db.PersistException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.io.PrintWriter;
-import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +86,7 @@ public class BooksServlet extends HttpServlet
     {
         try
         {
+            response.setCharacterEncoding("UTF-8");
             // Разбираем GET-параметры
             final String action = request.getParameter(ACTION);
             final String[] bookIdsString = request.getParameterValues(SELECTED_BOOKS);
@@ -113,32 +112,8 @@ public class BooksServlet extends HttpServlet
                 bookDatastore.copy(bookIds);
             } else if (EXPORT_ACTION.equals(action))
             {
-                // Здесь пользователь выбрал какие книги экпортировать
-                // передать в бизнес-логику массив id книг bookIds
-                
-                String booksXml = converter.convertBooks(bookIds);
-                
-                response.setCharacterEncoding("UTF-8");
-                
-                try (PrintWriter out = response.getWriter()) {
-                    response.setHeader("Content-Type", "text/xml");
-                    response.setHeader("Content-Description", "File Transfer");
-                    response.setContentType("application/octet-stream");
-                    response.setHeader( "Content-Disposition",
-                        String.format("attachment; filename=\"%s\"", EXPORT_FILE_NAME));
-                    
-                    response.setHeader("Content-Transfer-Encoding", "binary");
-                    response.setHeader("Connection", "Keep-Alive");
-                    response.setHeader("Expires", "0");
-                    response.setHeader("Cache-Control", "must-revalidate, post-check=0, pre-check=0");
-                    response.setHeader("Pragma", "public");
-                    response.setHeader("Content-Length", String.valueOf(booksXml));
-//                    response.setContentLength(booksXml.length());
-                    
-                    out.write(booksXml);
-                }
-                
-                System.out.println(booksXml);
+                exportXMLRequest(response, bookIds);
+                return;
             }
         } catch (final PersistException ex)
         {
@@ -214,6 +189,34 @@ public class BooksServlet extends HttpServlet
              || "https".equals(request.getScheme()) && request.getServerPort() == 443 ?
                 "" : ":" + request.getServerPort() ) + request.getRequestURI() +
             (request.getQueryString() != null ? "?" + request.getQueryString() : "");
+    }
+
+    // Обрабатывает запрос пользователя на экспорт книг в XML
+    private void exportXMLRequest(final HttpServletResponse response,
+            final List<Long> bookIds)
+    {
+        final String booksXml = converter.convertBooks(bookIds);
+
+        try (final PrintWriter out = response.getWriter()) {
+            response.setHeader("Content-Type", "text/xml");
+            response.setHeader("Content-Description", "File Transfer");
+            response.setContentType("application/octet-stream");
+            response.setHeader( "Content-Disposition",
+                String.format("attachment; filename=\"%s\"", EXPORT_FILE_NAME));
+
+            response.setHeader("Content-Transfer-Encoding", "binary");
+            response.setHeader("Connection", "Keep-Alive");
+            response.setHeader("Expires", "0");
+            response.setHeader("Cache-Control", "must-revalidate, post-check=0, pre-check=0");
+            response.setHeader("Pragma", "public");
+            response.setHeader("Content-Length", String.valueOf(booksXml));
+            //response.setContentLength(booksXml.length());
+
+            out.write(booksXml);
+        } catch (final IOException ex)
+        {
+            Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
 }
