@@ -6,9 +6,11 @@ import edu.library.beans.entity.Book;
 import edu.library.beans.entity.Genre;
 import edu.library.beans.persistence.BookDatastore;
 import edu.library.exceptions.db.PersistException;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,13 +22,20 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 
 @WebServlet(name = "Books", urlPatterns ={"/books"})
 public class BooksServlet extends HttpServlet
 {
     
     private static final String ACTION = "action",
-            DELETE_ACTION = "delete", COPY_ACTION = "copy", EXPORT_ACTION = "export-xml";
+            DELETE_ACTION = "delete", COPY_ACTION = "copy",
+            EXPORT_ACTION = "export-xml", SHOW_ACTION = "show";
     private static final String SEARCH_FILTER = "search", GENRE_FILTER = "genre",
             SORTING_FIELD = "sortField", SORTING_ORDER = "sortOrder", UP_SORTING_ORDER = "up";
     private static final String SELECTED_BOOKS = "param[]";
@@ -114,7 +123,12 @@ public class BooksServlet extends HttpServlet
             {
                 exportXMLRequest(response, bookIds);
                 return;
+            } else if (SHOW_ACTION.equals(action))
+            {
+                XSLTprocessing(response, bookIds);
+                return;
             }
+            
         } catch (final PersistException ex)
         {
             Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
@@ -215,6 +229,26 @@ public class BooksServlet extends HttpServlet
             out.write(booksXml);
         } catch (final IOException ex)
         {
+            Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private void XSLTprocessing(final HttpServletResponse response,
+            final List<Long> bookIds)
+    {
+        
+        final String booksXml = converter.convertBooks(bookIds);
+        
+        try (final PrintWriter out = response.getWriter()) {
+            TransformerFactory factory = TransformerFactory.newInstance();
+            
+            Source xslt = new StreamSource(getServletContext().getResourceAsStream("/books.xsl"));
+            Transformer transformer = factory.newTransformer(xslt);
+
+            Source text = new StreamSource(new StringReader(booksXml));
+            transformer.transform(text, new StreamResult(out));
+            
+        } catch (IOException | TransformerException ex) {
             Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
         }
     }

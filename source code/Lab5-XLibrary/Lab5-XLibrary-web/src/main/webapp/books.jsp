@@ -58,6 +58,7 @@
                         <option value="delete">Удалить</option>
                         <option value="copy">Копировать</option>
                         <option value="export-xml">Экспортировать в XML</option>
+                        <option value="show">Просмотреть (XSLT)</option>
                     </select>
                 </div>
                 <div class="col-sm-2">
