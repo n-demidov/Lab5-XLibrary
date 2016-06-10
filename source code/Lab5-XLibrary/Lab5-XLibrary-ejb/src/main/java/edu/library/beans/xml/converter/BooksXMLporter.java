@@ -88,15 +88,31 @@ public class BooksXMLporter
 
         for (final Book book : books.getBooks())
         {
-
             try
             {
                 bookDatastore.get(book.getId());
+                
+                try
+                {
+                    bookDatastore.update(book);
+                    results.add(String.format(
+                            "Книга '%s' (id=%d) успешно обновлена",
+                            book.getName(),
+                            book.getId()));
+                } catch (final ValidationException ex)
+                {
+                    results.add(String.format(
+                            "Ошибка при обновлении книги '%s' (id=%d): %s",
+                            book.getName(),
+                            book.getId(),
+                            ex.getLocalizedMessage()));
+                }
             }  catch (NoSuchEntityInDB | PersistException e)
             {
                 // если книги нет - добавляем
                 try
                 {
+                    book.setId(null);
                     bookDatastore.create(book);
                     results.add(String.format(
                             "Книга '%s' (id=%d) успешно добавлена",
@@ -104,9 +120,6 @@ public class BooksXMLporter
                             book.getId()));
                 } catch (final PersistException | ValidationException ex)
                 {
-                    //Logger.getLogger(BooksXMLporter.class.getName()).log(Level.SEVERE, null, ex);
-                    System.out.println("~~~~~ err int hadnling book update");
-                    System.out.println(ex.getMessage());
                     results.add(String.format(
                             "Ошибка при добавлении книги '%s' (id=%d): %s",
                             book.getName(),
@@ -115,6 +128,7 @@ public class BooksXMLporter
                 }
             }
         }
+        
         return results;
     }
 

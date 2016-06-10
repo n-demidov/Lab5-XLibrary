@@ -243,7 +243,6 @@ public class BooksServlet extends HttpServlet
             response.setHeader("Cache-Control", "must-revalidate, post-check=0, pre-check=0");
             response.setHeader("Pragma", "public");
             response.setHeader("Content-Length", String.valueOf(booksXml));
-            //response.setContentLength(booksXml.length());
 
             out.write(booksXml);
         }
@@ -270,9 +269,7 @@ public class BooksServlet extends HttpServlet
             Logger.getLogger(BooksServlet.class.getName()).log(Level.WARNING, null, ex);
 
             request.setAttribute(ERR_MSG, IMPORT_ERROR);
-            renderPage(request, response);
         }
-        renderPage(request, response);
     }
 
     private void XSLTprocessing(final HttpServletResponse response,

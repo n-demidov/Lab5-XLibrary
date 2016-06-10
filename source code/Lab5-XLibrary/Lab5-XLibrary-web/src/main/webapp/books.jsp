@@ -63,6 +63,7 @@
     
     <!-- Панель с кнопками действий -->
     <form class="form form-horizontal" action="${fullURI}" method="POST">
+        <input type="hidden" name="from" value="${fullURI}">
         <div class="well">
             <div class="form-group">
                 <div class="col-sm-8">
@@ -167,8 +168,6 @@
                 </tr>
             </c:forEach>
         </table>
-        
-        <input type="hidden" name="from" value="${fullURI}">
     </form>
     
 </div>
