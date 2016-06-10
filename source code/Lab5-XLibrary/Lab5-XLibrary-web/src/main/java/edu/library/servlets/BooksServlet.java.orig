@@ -24,25 +24,25 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+<<<<<<< HEAD
 import javax.servlet.http.Part;
 import javax.xml.bind.JAXBException;
+=======
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
+>>>>>>> bc2e37cff807558ff416c66c82f53b306ffd9045
 
-@WebServlet(name = "Books", urlPatterns =
-{
-    "/books"
-})
-@MultipartConfig(fileSizeThreshold = 1024 * 1024 * 1, // 1MB
-        maxFileSize = 1024 * 1024 * 1, // 1MB
-        maxRequestSize = 1024 * 1024 * 2)    // 2MB
+@WebServlet(name = "Books", urlPatterns ={"/books"})
+@MultipartConfig(fileSizeThreshold=1024*1024*1, // 1MB
+                 maxFileSize=1024*1024*1,       // 1MB
+                 maxRequestSize=1024*1024*2)    // 2MB
 public class BooksServlet extends HttpServlet
 {
-
+    
     private static final String ACTION = "action",
             DELETE_ACTION = "delete", COPY_ACTION = "copy",
             EXPORT_ACTION = "export-xml", SHOW_ACTION = "show";
@@ -55,18 +55,18 @@ public class BooksServlet extends HttpServlet
     private static final String FORM_UPLOAD_XML_IMPORT_FILE = "import-xml-file";
     private static final String IMPORT_ERROR = "Во время операции импорта книг возникла ошибка. Проверьте корректность xml-файла";
     private static final String IMPORT_INFO_LIST = "importInfoList";
-
+    
     @EJB
     private BookDatastore bookDatastore;
-
+    
     @EJB
     private GenreDatastore genreDatastore;
-
+    
     @EJB
     private BooksXMLporter converter;
-
+    
     private static final Map<String, BookDatastore.SortBy> ORDER_VALUES;  // предопределённые значения сортировки списка книг
-
+    
     static
     {
         ORDER_VALUES = new LinkedHashMap<>();
@@ -82,7 +82,6 @@ public class BooksServlet extends HttpServlet
 
     /**
      * Выводит список книг по фильтру и сортировке, указанным в GET-параметрах
-     *
      * @param request servlet request
      * @param response servlet response
      * @throws ServletException if a servlet-specific error occurs
@@ -96,9 +95,8 @@ public class BooksServlet extends HttpServlet
     }
 
     /**
-     * Обрабатывает действия пользователя со страницы списка книг. После чего
-     * редиректит на страницу-источник.
-     *
+     * Обрабатывает действия пользователя со страницы списка книг.
+     * После чего редиректит на страницу-источник.
      * @param request servlet request
      * @param response servlet response
      * @throws ServletException if a servlet-specific error occurs
@@ -122,7 +120,8 @@ public class BooksServlet extends HttpServlet
 //                return;
             } else
             {
-
+            
+<<<<<<< HEAD
                 if (bookIdsString == null)
                 {
                     renderPage(request, response);
@@ -131,9 +130,9 @@ public class BooksServlet extends HttpServlet
 
                 // Получаем массив id книг, которые выбрал пользователь
                 final List<Long> bookIds = new ArrayList<>(bookIdsString.length);
-                for (int i = 0; i < bookIdsString.length; i++)
+                for(int i = 0; i < bookIdsString.length; i++)
                 {
-                    bookIds.add(Long.parseLong(bookIdsString[i]));
+                   bookIds.add(Long.parseLong(bookIdsString[i]));
                 }
 
                 // Выполняем действие
@@ -147,25 +146,38 @@ public class BooksServlet extends HttpServlet
                 {
                     exportXMLRequest(response, bookIds);
                     return;
-                } else if (SHOW_ACTION.equals(action))
-                {
-                    XSLTprocessing(response, bookIds);
-                    return;
                 }
+=======
+            // Выполняем действие
+            if (DELETE_ACTION.equals(action))
+            {
+                bookDatastore.delete(bookIds);
+            } else if (COPY_ACTION.equals(action))
+            {
+                bookDatastore.copy(bookIds);
+            } else if (EXPORT_ACTION.equals(action))
+            {
+                exportXMLRequest(response, bookIds);
+                return;
+            } else if (SHOW_ACTION.equals(action))
+            {
+                XSLTprocessing(response, bookIds);
+                return;
+>>>>>>> bc2e37cff807558ff416c66c82f53b306ffd9045
             }
+            
         } catch (final PersistException ex)
         {
             Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
             request.setAttribute(ERR_MSG, String.format(ERROR_WHILE_OPERATIONS, ex.getLocalizedMessage()));
         }
-
+        
         // Отрисовываем страницу
         renderPage(request, response);
     }
 
     /**
      * Returns a short description of the servlet.
-     *
      * @return a String containing servlet description
      */
     @Override
@@ -173,7 +185,7 @@ public class BooksServlet extends HttpServlet
     {
         return "Short description";
     }
-
+    
     // Отрисовывает страницу
     private void renderPage(final HttpServletRequest request,
             final HttpServletResponse response) throws ServletException, IOException
@@ -181,7 +193,7 @@ public class BooksServlet extends HttpServlet
         try
         {
             request.setCharacterEncoding("UTF-8");
-
+            
             // Разбираем GET-параметры
             final String searchFilter = request.getParameter(SEARCH_FILTER);
             final String genreFilterParam = request.getParameter(GENRE_FILTER);
@@ -189,21 +201,21 @@ public class BooksServlet extends HttpServlet
             final String sortingOrder = request.getParameter(SORTING_ORDER);
             final Long genreFilter
                     = (genreFilterParam == null || genreFilterParam.length() == 0)
-                            ? null : Long.parseLong(genreFilterParam);
-
+                    ? null : Long.parseLong(genreFilterParam);
+            
             final List<Genre> genres = genreDatastore.getAll();
             final List<Book> books = bookDatastore.getByFilter(
                     searchFilter,
                     genreFilter,
                     getSorting(sortingField),
                     UP_SORTING_ORDER.equals(sortingOrder)
-                    ? BookDatastore.SortOrder.Desc : BookDatastore.SortOrder.Asc);
-
+                        ? BookDatastore.SortOrder.Desc : BookDatastore.SortOrder.Asc);
+            
             request.setAttribute("books", books);
             request.setAttribute("genres", genres);
             request.setAttribute("ORDER_VALUES", ORDER_VALUES.keySet());
             request.setAttribute("fullURI", getFullURI(request));
-
+            
             request.getRequestDispatcher("/books.jsp").forward(request, response);
         } catch (final PersistException ex)
         {
@@ -211,15 +223,12 @@ public class BooksServlet extends HttpServlet
             request.setAttribute(ERR_MSG, String.format(ERROR_WHILE_OPERATIONS, ex.getLocalizedMessage()));
         }
     }
-
+    
     // Возвращает сортировку
     private BookDatastore.SortBy getSorting(final String inputSortField)
     {
         BookDatastore.SortBy field = ORDER_VALUES.getOrDefault(inputSortField, null);
-        if (field == null)
-        {
-            field = BookDatastore.SortBy.ID;
-        }
+        if (field == null) field = BookDatastore.SortBy.ID;
         return field;
     }
 
@@ -229,13 +238,12 @@ public class BooksServlet extends HttpServlet
     {
         final String booksXml = converter.exportBooks(bookIds);
 
-        try (final PrintWriter out = response.getWriter())
-        {
+        try (final PrintWriter out = response.getWriter()) {
             response.setHeader("Content-Type", "text/xml");
             response.setHeader("Content-Description", "File Transfer");
             response.setContentType("application/octet-stream");
-            response.setHeader("Content-Disposition",
-                    String.format("attachment; filename=\"%s\"", EXPORT_FILE_NAME));
+            response.setHeader( "Content-Disposition",
+                String.format("attachment; filename=\"%s\"", EXPORT_FILE_NAME));
 
             response.setHeader("Content-Transfer-Encoding", "binary");
             response.setHeader("Connection", "Keep-Alive");
@@ -257,7 +265,7 @@ public class BooksServlet extends HttpServlet
         {
             System.out.println("+++ processImportXML");
             System.out.println("");
-
+            
             final Part xmlFile = request.getPart(FORM_UPLOAD_XML_IMPORT_FILE);
             final List<String> importInfoList = converter.importBooks(xmlFile.getInputStream());
             request.setAttribute(IMPORT_INFO_LIST, importInfoList);
@@ -268,52 +276,50 @@ public class BooksServlet extends HttpServlet
         } catch (final JAXBException ex)
         {
             Logger.getLogger(BooksServlet.class.getName()).log(Level.WARNING, null, ex);
-
+            
             request.setAttribute(ERR_MSG, IMPORT_ERROR);
             renderPage(request, response);
         }
         renderPage(request, response);
     }
-
-    private void XSLTprocessing(final HttpServletResponse response,
-            final List<Long> bookIds)
-    {
-
-        final String booksXml = converter.exportBooks(bookIds);
-
-        try (final PrintWriter out = response.getWriter())
-        {
-            TransformerFactory factory = TransformerFactory.newInstance();
-
-            Source xslt = new StreamSource(getServletContext().getResourceAsStream("/books.xsl"));
-            Transformer transformer = factory.newTransformer(xslt);
-
-            Source text = new StreamSource(new StringReader(booksXml));
-            transformer.transform(text, new StreamResult(out));
-
-        } catch (IOException | TransformerException ex)
-        {
-            Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
+    
     // Check is request with enctype multipart/form-data
     private boolean isMultipartFormData(final HttpServletRequest request)
     {
         final String MULTIPART_FORM_DATA = "multipart/form-data";
         return (request.getContentType() != null
                 && request.getContentType().toLowerCase()
-                .indexOf(MULTIPART_FORM_DATA) > -1);
+                        .indexOf(MULTIPART_FORM_DATA) > -1 );
     }
-
+    
     // Возвращает полный uri страницы
     private String getFullURI(final HttpServletRequest request)
     {
-        return request.getScheme() + "://" + request.getServerName()
-                + ("http".equals(request.getScheme()) && request.getServerPort() == 80
-                || "https".equals(request.getScheme()) && request.getServerPort() == 443
-                ? "" : ":" + request.getServerPort()) + request.getRequestURI()
-                + (request.getQueryString() != null ? "?" + request.getQueryString() : "");
+        return request.getScheme() + "://" + request.getServerName() + 
+            ("http".equals(request.getScheme()) && request.getServerPort() == 80
+             || "https".equals(request.getScheme()) && request.getServerPort() == 443 ?
+                "" : ":" + request.getServerPort() ) + request.getRequestURI() +
+            (request.getQueryString() != null ? "?" + request.getQueryString() : "");
     }
+    
+    private void XSLTprocessing(final HttpServletResponse response,
+            final List<Long> bookIds)
+    {
+        
+        final String booksXml = converter.convertBooks(bookIds);
+        
+        try (final PrintWriter out = response.getWriter()) {
+            TransformerFactory factory = TransformerFactory.newInstance();
+            
+            Source xslt = new StreamSource(getServletContext().getResourceAsStream("/books.xsl"));
+            Transformer transformer = factory.newTransformer(xslt);
 
+            Source text = new StreamSource(new StringReader(booksXml));
+            transformer.transform(text, new StreamResult(out));
+            
+        } catch (IOException | TransformerException ex) {
+            Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
 }
