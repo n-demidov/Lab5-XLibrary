@@ -1,7 +1,8 @@
 package edu.library.servlets;
 
+import edu.library.Constants;
 import edu.library.beans.persistence.GenreDatastore;
-import edu.library.beans.xml.converter.XMLConverter;
+import edu.library.beans.xml.converter.BooksXMLporter;
 import edu.library.beans.entity.Book;
 import edu.library.beans.entity.Genre;
 import edu.library.beans.persistence.BookDatastore;
@@ -16,12 +17,18 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.servlet.ServletException;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
+import javax.xml.bind.JAXBException;
 
 @WebServlet(name = "Books", urlPatterns ={"/books"})
+@MultipartConfig(fileSizeThreshold=1024*1024*1, // 1MB
+                 maxFileSize=1024*1024*1,       // 1MB
+                 maxRequestSize=1024*1024*2)    // 2MB
 public class BooksServlet extends HttpServlet
 {
     
@@ -33,6 +40,9 @@ public class BooksServlet extends HttpServlet
     private static final String ERROR_WHILE_OPERATIONS = "При выполнении операции возникла ошибка: %s";
     private static final String ERR_MSG = "errMsg";
     private static final String EXPORT_FILE_NAME = "books.xml";
+    private static final String FORM_UPLOAD_XML_IMPORT_FILE = "import-xml-file";
+    private static final String IMPORT_ERROR = "Во время операции импорта книг возникла ошибка. Проверьте корректность xml-файла";
+    private static final String IMPORT_INFO_LIST = "importInfoList";
     
     @EJB
     private BookDatastore bookDatastore;
@@ -41,7 +51,7 @@ public class BooksServlet extends HttpServlet
     private GenreDatastore genreDatastore;
     
     @EJB
-    private XMLConverter converter;
+    private BooksXMLporter converter;
     
     private static final Map<String, BookDatastore.SortBy> ORDER_VALUES;  // предопределённые значения сортировки списка книг
     
@@ -90,30 +100,40 @@ public class BooksServlet extends HttpServlet
             // Разбираем GET-параметры
             final String action = request.getParameter(ACTION);
             final String[] bookIdsString = request.getParameterValues(SELECTED_BOOKS);
-            if (bookIdsString == null)
+
+            // Если это запрос на импорт книг из XML - обрабатываем
+            if (isMultipartFormData(request))
             {
-                renderPage(request, response);
-                return;
-            }
+                processImportXML(request, response);
+//                return;
+            } else
+            {
             
-            // Получаем массив id книг, которые выбрал пользователь
-            final List<Long> bookIds = new ArrayList<>(bookIdsString.length);
-            for(int i = 0; i < bookIdsString.length; i++)
-            {
-               bookIds.add(Long.parseLong(bookIdsString[i]));
-            }
-            
-            // Выполняем действие
-            if (DELETE_ACTION.equals(action))
-            {
-                bookDatastore.delete(bookIds);
-            } else if (COPY_ACTION.equals(action))
-            {
-                bookDatastore.copy(bookIds);
-            } else if (EXPORT_ACTION.equals(action))
-            {
-                exportXMLRequest(response, bookIds);
-                return;
+                if (bookIdsString == null)
+                {
+                    renderPage(request, response);
+                    return;
+                }
+
+                // Получаем массив id книг, которые выбрал пользователь
+                final List<Long> bookIds = new ArrayList<>(bookIdsString.length);
+                for(int i = 0; i < bookIdsString.length; i++)
+                {
+                   bookIds.add(Long.parseLong(bookIdsString[i]));
+                }
+
+                // Выполняем действие
+                if (DELETE_ACTION.equals(action))
+                {
+                    bookDatastore.delete(bookIds);
+                } else if (COPY_ACTION.equals(action))
+                {
+                    bookDatastore.copy(bookIds);
+                } else if (EXPORT_ACTION.equals(action))
+                {
+                    exportXMLRequest(response, bookIds);
+                    return;
+                }
             }
         } catch (final PersistException ex)
         {
@@ -180,22 +200,12 @@ public class BooksServlet extends HttpServlet
         if (field == null) field = BookDatastore.SortBy.ID;
         return field;
     }
-    
-    // Возвращает полный uri страницы
-    private String getFullURI(final HttpServletRequest request)
-    {
-        return request.getScheme() + "://" + request.getServerName() + 
-            ("http".equals(request.getScheme()) && request.getServerPort() == 80
-             || "https".equals(request.getScheme()) && request.getServerPort() == 443 ?
-                "" : ":" + request.getServerPort() ) + request.getRequestURI() +
-            (request.getQueryString() != null ? "?" + request.getQueryString() : "");
-    }
 
     // Обрабатывает запрос пользователя на экспорт книг в XML
     private void exportXMLRequest(final HttpServletResponse response,
-            final List<Long> bookIds)
+            final List<Long> bookIds) throws IOException
     {
-        final String booksXml = converter.convertBooks(bookIds);
+        final String booksXml = converter.exportBooks(bookIds);
 
         try (final PrintWriter out = response.getWriter()) {
             response.setHeader("Content-Type", "text/xml");
@@ -213,10 +223,52 @@ public class BooksServlet extends HttpServlet
             //response.setContentLength(booksXml.length());
 
             out.write(booksXml);
-        } catch (final IOException ex)
-        {
-            Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    // Обрабатывает запрос пользователя на импорт XML
+    private void processImportXML(final HttpServletRequest request,
+            final HttpServletResponse response) throws IOException, ServletException
+    {
+        try
+        {
+            System.out.println("+++ processImportXML");
+            System.out.println("");
+            
+            final Part xmlFile = request.getPart(FORM_UPLOAD_XML_IMPORT_FILE);
+            final List<String> importInfoList = converter.importBooks(xmlFile.getInputStream());
+            request.setAttribute(IMPORT_INFO_LIST, importInfoList);
+
+            System.out.println("");
+            System.out.println("+++ end of import XML");
+            System.out.println("");
+        } catch (final JAXBException ex)
+        {
+            Logger.getLogger(BooksServlet.class.getName()).log(Level.WARNING, null, ex);
+            
+            request.setAttribute(ERR_MSG, IMPORT_ERROR);
+            renderPage(request, response);
+        }
+        renderPage(request, response);
+    }
+    
+    // Check is request with enctype multipart/form-data
+    private boolean isMultipartFormData(final HttpServletRequest request)
+    {
+        final String MULTIPART_FORM_DATA = "multipart/form-data";
+        return (request.getContentType() != null
+                && request.getContentType().toLowerCase()
+                        .indexOf(MULTIPART_FORM_DATA) > -1 );
+    }
+    
+    // Возвращает полный uri страницы
+    private String getFullURI(final HttpServletRequest request)
+    {
+        return request.getScheme() + "://" + request.getServerName() + 
+            ("http".equals(request.getScheme()) && request.getServerPort() == 80
+             || "https".equals(request.getScheme()) && request.getServerPort() == 443 ?
+                "" : ":" + request.getServerPort() ) + request.getRequestURI() +
+            (request.getQueryString() != null ? "?" + request.getQueryString() : "");
     }
     
 }

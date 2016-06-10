@@ -47,6 +47,20 @@
         </form>
     </div>
     
+    <!-- Блок импорта XML -->
+    <div class="well">
+        <form class="form form-horizontal" action="${fullURI}" method="POST" enctype="multipart/form-data">
+            <div class="row">
+                <div class="col-sm-3">
+                    <input type="file" name="import-xml-file" accept="text/xml">
+                </div>
+                <div class="col-sm-2">
+                    <button class="btn btn-primary" type="submit">Импортировать XML</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
     <!-- Панель с кнопками действий -->
     <form class="form form-horizontal" action="${fullURI}" method="POST">
         <div class="well">
@@ -73,7 +87,7 @@
             </div>
         </div>
 
-        <!-- Панель с информацией об ошибке -->
+        <!-- Информация об ошибке -->
         <c:choose>
             <c:when test="${errMsg != null}">
                 <div class="alert alert-danger" role="alert">
@@ -81,6 +95,13 @@
                 </div>
             </c:when>    
         </c:choose>
+        
+        <!-- Информация о результатах импорта -->
+        <c:forEach items="${importInfoList}" var="importInfo">
+            <p class="text-info">
+                ${importInfo}
+            </p>
+        </c:forEach>
         
         <!-- Таблица книг -->
         <table class="table table-striped table-bordered table-hover table-condensed">

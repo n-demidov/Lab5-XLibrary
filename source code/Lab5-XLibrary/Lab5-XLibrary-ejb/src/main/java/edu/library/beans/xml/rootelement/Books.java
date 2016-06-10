@@ -25,4 +25,10 @@ public class Books
         this.books = books;
     }
 
+    @Override
+    public String toString()
+    {
+        return "Books{" + "books=" + books + '}';
+    }
+
 }
