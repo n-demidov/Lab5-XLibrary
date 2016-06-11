@@ -15,12 +15,11 @@ import java.util.logging.Level;
 import javax.ejb.EJB;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet(name = "Book", urlPatterns ={"/book"})
-public class BookServlet extends HttpServlet
+public class BookServlet extends AbstractServlet
 {
 
     private static final String PAGE_TYPE = "type", PAGE_TYPE_ADD = "add";
@@ -248,16 +247,6 @@ public class BookServlet extends HttpServlet
         {
             throw new ValidationException(error);
         }
-    }
-    
-    // Возвращает полный uri страницы
-    private String getFullURI(final HttpServletRequest request)
-    {
-        return request.getScheme() + "://" + request.getServerName() + 
-            ("http".equals(request.getScheme()) && request.getServerPort() == 80
-             || "https".equals(request.getScheme()) && request.getServerPort() == 443 ?
-                "" : ":" + request.getServerPort() ) + request.getRequestURI() +
-            (request.getQueryString() != null ? "?" + request.getQueryString() : "");
     }
     
 }

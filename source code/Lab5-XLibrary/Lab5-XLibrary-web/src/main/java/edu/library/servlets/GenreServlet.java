@@ -12,12 +12,11 @@ import java.util.logging.Level;
 import javax.ejb.EJB;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet(name = "GenreServlet", urlPatterns ={"/genre"})
-public class GenreServlet extends HttpServlet
+public class GenreServlet extends AbstractServlet
 {
     
     private final String PAGE_TYPE = "type", PAGE_TYPE_ADD = "add";

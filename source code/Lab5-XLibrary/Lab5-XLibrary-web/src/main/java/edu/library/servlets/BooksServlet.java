@@ -1,13 +1,11 @@
 package edu.library.servlets;
 
-import edu.library.Constants;
 import edu.library.beans.persistence.GenreDatastore;
 import edu.library.beans.xml.converter.BooksXMLporter;
 import edu.library.beans.entity.Book;
 import edu.library.beans.entity.Genre;
 import edu.library.beans.persistence.BookDatastore;
 import edu.library.exceptions.db.PersistException;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.io.PrintWriter;
@@ -21,7 +19,6 @@ import javax.ejb.EJB;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
@@ -33,14 +30,11 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
-@WebServlet(name = "Books", urlPatterns =
-{
-    "/books"
-})
-@MultipartConfig(fileSizeThreshold = 1024 * 1024 * 1, // 1MB
-        maxFileSize = 1024 * 1024 * 1, // 1MB
-        maxRequestSize = 1024 * 1024 * 2)    // 2MB
-public class BooksServlet extends HttpServlet
+@WebServlet(name = "Books", urlPatterns ={"/books"})
+@MultipartConfig(fileSizeThreshold = 1024 * 1024 * 1,   // 1MB
+                 maxFileSize = 1024 * 1024 * 1,         // 1MB
+                 maxRequestSize = 1024 * 1024 * 2)      // 2MB
+public class BooksServlet extends AbstractServlet
 {
 
     private static final String ACTION = "action",
@@ -63,7 +57,7 @@ public class BooksServlet extends HttpServlet
     private GenreDatastore genreDatastore;
 
     @EJB
-    private BooksXMLporter converter;
+    private BooksXMLporter booksXMLConverter;
 
     private static final Map<String, BookDatastore.SortBy> ORDER_VALUES;  // предопределённые значения сортировки списка книг
 
@@ -98,7 +92,6 @@ public class BooksServlet extends HttpServlet
     /**
      * Обрабатывает действия пользователя со страницы списка книг. После чего
      * редиректит на страницу-источник.
-     *
      * @param request servlet request
      * @param response servlet response
      * @throws ServletException if a servlet-specific error occurs
@@ -118,11 +111,9 @@ public class BooksServlet extends HttpServlet
             // Если это запрос на импорт книг из XML - обрабатываем
             if (isMultipartFormData(request))
             {
-                processImportXML(request, response);
-//                return;
+                processImportXML(request);
             } else
             {
-
                 if (bookIdsString == null)
                 {
                     renderPage(request, response);
@@ -149,7 +140,7 @@ public class BooksServlet extends HttpServlet
                     return;
                 } else if (SHOW_ACTION.equals(action))
                 {
-                    XSLTprocessing(response, bookIds);
+                    processXSLTRequest(response, bookIds);
                     return;
                 }
             }
@@ -227,7 +218,7 @@ public class BooksServlet extends HttpServlet
     private void exportXMLRequest(final HttpServletResponse response,
             final List<Long> bookIds) throws IOException
     {
-        final String booksXml = converter.exportBooks(bookIds);
+        final String booksXml = booksXMLConverter.exportBooks(bookIds);
 
         try (final PrintWriter out = response.getWriter())
         {
@@ -249,8 +240,8 @@ public class BooksServlet extends HttpServlet
     }
 
     // Обрабатывает запрос пользователя на импорт XML
-    private void processImportXML(final HttpServletRequest request,
-            final HttpServletResponse response) throws IOException, ServletException
+    private void processImportXML(final HttpServletRequest request)
+            throws IOException, ServletException
     {
         try
         {
@@ -258,7 +249,7 @@ public class BooksServlet extends HttpServlet
             System.out.println("");
 
             final Part xmlFile = request.getPart(FORM_UPLOAD_XML_IMPORT_FILE);
-            final List<String> importInfoList = converter.importBooks(xmlFile.getInputStream());
+            final List<String> importInfoList = booksXMLConverter.importBooks(xmlFile.getInputStream());
             request.setAttribute(IMPORT_INFO_LIST, importInfoList);
 
             System.out.println("");
@@ -272,45 +263,25 @@ public class BooksServlet extends HttpServlet
         }
     }
 
-    private void XSLTprocessing(final HttpServletResponse response,
+    // Выводит запрошенные книги с помощью XSLT
+    private void processXSLTRequest(final HttpServletResponse response,
             final List<Long> bookIds)
     {
-
-        final String booksXml = converter.exportBooks(bookIds);
+        final String booksXml = booksXMLConverter.exportBooks(bookIds);
 
         try (final PrintWriter out = response.getWriter())
         {
-            TransformerFactory factory = TransformerFactory.newInstance();
+            final TransformerFactory factory = TransformerFactory.newInstance();
 
-            Source xslt = new StreamSource(getServletContext().getResourceAsStream("/books.xsl"));
-            Transformer transformer = factory.newTransformer(xslt);
+            final Source xslt = new StreamSource(getServletContext().getResourceAsStream("/books.xsl"));
+            final Transformer transformer = factory.newTransformer(xslt);
 
-            Source text = new StreamSource(new StringReader(booksXml));
+            final Source text = new StreamSource(new StringReader(booksXml));
             transformer.transform(text, new StreamResult(out));
-
-        } catch (IOException | TransformerException ex)
+        } catch (final IOException | TransformerException ex)
         {
             Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }
-
-    // Check is request with enctype multipart/form-data
-    private boolean isMultipartFormData(final HttpServletRequest request)
-    {
-        final String MULTIPART_FORM_DATA = "multipart/form-data";
-        return (request.getContentType() != null
-                && request.getContentType().toLowerCase()
-                .indexOf(MULTIPART_FORM_DATA) > -1);
-    }
-
-    // Возвращает полный uri страницы
-    private String getFullURI(final HttpServletRequest request)
-    {
-        return request.getScheme() + "://" + request.getServerName()
-                + ("http".equals(request.getScheme()) && request.getServerPort() == 80
-                || "https".equals(request.getScheme()) && request.getServerPort() == 443
-                ? "" : ":" + request.getServerPort()) + request.getRequestURI()
-                + (request.getQueryString() != null ? "?" + request.getQueryString() : "");
     }
 
 }
