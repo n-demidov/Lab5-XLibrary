@@ -180,7 +180,7 @@ public class BookDatastore extends AbstractDatastore
             startOperation();
 
             final List<Book> books = session.createQuery(SELECT_BY_IDS)
-                .setParameter("ids", ids)
+                .setParameterList("ids", ids)
                 .list();
             
             tx.commit();
