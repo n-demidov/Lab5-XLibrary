@@ -76,7 +76,6 @@ public class BooksServlet extends AbstractServlet
 
     /**
      * Выводит список книг по фильтру и сортировке, указанным в GET-параметрах
-     *
      * @param request servlet request
      * @param response servlet response
      * @throws ServletException if a servlet-specific error occurs
@@ -156,7 +155,6 @@ public class BooksServlet extends AbstractServlet
 
     /**
      * Returns a short description of the servlet.
-     *
      * @return a String containing servlet description
      */
     @Override
