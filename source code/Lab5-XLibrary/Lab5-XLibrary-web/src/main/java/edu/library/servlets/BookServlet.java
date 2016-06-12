@@ -12,6 +12,7 @@ import edu.library.exceptions.db.PersistException;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -63,11 +64,17 @@ public class BookServlet extends AbstractServlet
                 book = bookDatastore.get(bookId);
                 isAddBook = false;
             }
-        } catch (final NumberFormatException | PersistException | NoSuchEntityInDB ex)
+        } catch (final NoSuchEntityInDB | NumberFormatException ex)
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
             response.sendRedirect(Constants.REDIRECT_BOOKS_PAGE);
+            return;
+        } catch (final PersistException ex)
+        {
+            Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
+            request.setAttribute("errMsg", ex.getMessage());
         }
+
         forwardToJSP(request, response, book, isAddBook);
     }
 
