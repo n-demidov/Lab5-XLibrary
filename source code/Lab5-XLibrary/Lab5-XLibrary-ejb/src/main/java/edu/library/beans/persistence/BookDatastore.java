@@ -147,13 +147,14 @@ public class BookDatastore extends AbstractDatastore
                     .createQuery(SELECT_BOOK)
                     .setParameter("id", id)
                     .uniqueResult();
-            
             tx.commit();
+            
+            if (book == null)
+            {
+                throw new NoSuchEntityInDB(String.format(NO_SUCH_ENTITY_IN_DB, id));
+            }
+            
             return book;
-        } catch (final NoResultException | TransactionException ex)
-        {
-            tx.rollback();
-            throw new NoSuchEntityInDB(String.format(NO_SUCH_ENTITY_IN_DB, id));
         } catch (final HibernateException ex)
         {
             tx.rollback();
