@@ -267,13 +267,14 @@ public class BooksServlet extends AbstractServlet
     private void processXSLTRequest(final HttpServletResponse response,
             final List<Long> bookIds)
     {
+        final String XSLT_BOOKS = "/xslt/books.xsl";
         final String booksXml = booksXMLConverter.exportBooks(bookIds);
 
         try (final PrintWriter out = response.getWriter())
         {
             final TransformerFactory factory = TransformerFactory.newInstance();
 
-            final Source xslt = new StreamSource(getServletContext().getResourceAsStream("/books.xsl"));
+            final Source xslt = new StreamSource(getServletContext().getResourceAsStream(XSLT_BOOKS));
             final Transformer transformer = factory.newTransformer(xslt);
 
             final Source text = new StreamSource(new StringReader(booksXml));
