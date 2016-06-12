@@ -22,6 +22,11 @@ import javax.xml.bind.Unmarshaller;
 @Stateless
 public class BooksXMLporter
 {
+    
+    private static final String BOOK_ADDING_ERR = "Ошибка при добавлении книги '%s' (id=%d): %s";
+    private static final String BOOK_WAS_ADDED = "Книга '%s' (id=%d) успешно добавлена";
+    private static final String BOOK_UPDATING_ERR = "Ошибка при обновлении книги '%s' (id=%d): %s";
+    private static final String BOOK_WAS_UPDATED = "Книга '%s' (id=%d) успешно обновлена";
 
     @EJB
     private BookDatastore bookDatastore;
@@ -59,12 +64,6 @@ public class BooksXMLporter
             final List<Book> bookList = bookDatastore.get(ids);
             final Books books = new Books();
             books.setBooks(bookList);
-
-//            for (final Book book : bookList)
-//            {
-//                booksJaxbMarshaller.marshal(book, sw);
-//            }
-            
             booksJaxbMarshaller.marshal(books, sw);
         } catch (final PersistException | JAXBException ex)
         {
@@ -77,6 +76,7 @@ public class BooksXMLporter
     /**
      * Импортирует выбранные книги из XML. Добавляет книги в БД
      * @param inputStream
+     * @return 
      * @throws JAXBException 
      */
     public List<String> importBooks(final InputStream inputStream) throws JAXBException
@@ -95,33 +95,28 @@ public class BooksXMLporter
                 try
                 {
                     bookDatastore.update(book);
-                    results.add(String.format(
-                            "Книга '%s' (id=%d) успешно обновлена",
+                    results.add(String.format(BOOK_WAS_UPDATED,
                             book.getName(),
                             book.getId()));
                 } catch (final ValidationException ex)
                 {
-                    results.add(String.format(
-                            "Ошибка при обновлении книги '%s' (id=%d): %s",
+                    results.add(String.format(BOOK_UPDATING_ERR,
                             book.getName(),
                             book.getId(),
                             ex.getLocalizedMessage()));
                 }
-            }  catch (NoSuchEntityInDB | PersistException e)
+            } catch (final NoSuchEntityInDB | PersistException e)
             {
                 // если книги нет - добавляем
                 try
                 {
-                    book.setId(null);
                     bookDatastore.create(book);
-                    results.add(String.format(
-                            "Книга '%s' (id=%d) успешно добавлена",
+                    results.add(String.format(BOOK_WAS_ADDED,
                             book.getName(),
                             book.getId()));
                 } catch (final PersistException | ValidationException ex)
                 {
-                    results.add(String.format(
-                            "Ошибка при добавлении книги '%s' (id=%d): %s",
+                    results.add(String.format(BOOK_ADDING_ERR,
                             book.getName(),
                             book.getId(),
                             ex.getLocalizedMessage()));

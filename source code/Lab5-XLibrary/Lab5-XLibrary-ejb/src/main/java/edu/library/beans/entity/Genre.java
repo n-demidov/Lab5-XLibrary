@@ -11,6 +11,7 @@ import javax.persistence.Basic;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -45,14 +46,12 @@ public class Genre implements Serializable
     @Basic(optional = false)
     @Column(nullable = false)
     private Long id;
-    
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 100, message="Поле 'Название' должно быть от 1 до 100 символов")
     @Column(nullable = false, length = 100)
     private String name;
-    
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "genre")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "genre", fetch = FetchType.EAGER)
     private List<Book> bookList;
 
     public Genre()

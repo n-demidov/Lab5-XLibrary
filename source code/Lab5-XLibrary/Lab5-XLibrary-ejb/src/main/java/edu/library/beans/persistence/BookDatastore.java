@@ -8,11 +8,13 @@ import java.util.Collections;
 import java.util.List;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
-import javax.persistence.EntityManager;
+import javax.ejb.TransactionAttribute;
+import static javax.ejb.TransactionAttributeType.NOT_SUPPORTED;
 import javax.persistence.NoResultException;
-import javax.persistence.PersistenceContext;
-import javax.persistence.PersistenceException;
-import javax.persistence.Query;
+import javax.validation.ConstraintViolationException;
+import org.hibernate.HibernateException;
+import org.hibernate.Query;
+import org.hibernate.TransactionException;
 
 /**
  * Объект для управления персистентным состоянием объекта Book
@@ -56,10 +58,6 @@ public class BookDatastore extends AbstractDatastore
     private static final String ANY_CHARS = "%";
     
     private static final String NO_SUCH_ENTITY_IN_DB = "В базе данных нет книги с id = %d";
-    
-    
-    @PersistenceContext(unitName = "LibraryPU")
-    private EntityManager entityManager;
     
     // <editor-fold defaultstate="collapsed" desc="Enums for sorting results">
     /**
@@ -110,17 +108,24 @@ public class BookDatastore extends AbstractDatastore
      * @return
      * @throws edu.library.exceptions.db.PersistException
      */
+    @TransactionAttribute(NOT_SUPPORTED)
     public List<Book> getAll() throws PersistException
     {
         try
         {
-            final List<Book> books = entityManager
-                .createQuery(SELECT_ALL_BOOKS, Book.class)
-                .getResultList();
+            startOperation();
+            
+            final List<Book> books = session.createQuery(SELECT_ALL_BOOKS).list();
+            
+            tx.commit();
             return books;
-        } catch (final PersistenceException ex)
+        } catch (final HibernateException ex)
         {
+            tx.rollback();
             throw new PersistException(getExceptionMessage(ex));
+        } finally
+        {
+            session.close();
         }
     }
     
@@ -131,21 +136,31 @@ public class BookDatastore extends AbstractDatastore
      * @throws edu.library.exceptions.db.NoSuchEntityInDB 
      * @throws edu.library.exceptions.db.PersistException 
      */
+    @TransactionAttribute(NOT_SUPPORTED)
     public Book get(final Long id) throws NoSuchEntityInDB, PersistException
     {
         try
         {
-            final Book book = entityManager
-                .createQuery(SELECT_BOOK, Book.class)
-                .setParameter("id", id)
-                .getSingleResult();
+            startOperation();
+            
+            final Book book = (Book) session
+                    .createQuery(SELECT_BOOK)
+                    .setParameter("id", id)
+                    .uniqueResult();
+            
+            tx.commit();
             return book;
-        } catch (final NoResultException ex)
+        } catch (final NoResultException | TransactionException ex)
         {
+            tx.rollback();
             throw new NoSuchEntityInDB(String.format(NO_SUCH_ENTITY_IN_DB, id));
-        } catch (final PersistenceException ex)
+        } catch (final HibernateException ex)
         {
+            tx.rollback();
             throw new PersistException(getExceptionMessage(ex));
+        } finally
+        {
+            session.close();
         }
     }
     
@@ -155,19 +170,28 @@ public class BookDatastore extends AbstractDatastore
      * @return 
      * @throws PersistException 
      */
+    @TransactionAttribute(NOT_SUPPORTED)
     public List<Book> get(final List<Long> ids) throws PersistException
     {
         if (ids == null) return Collections.emptyList();
 
         try
         {
-            final List<Book> books = entityManager.createQuery(SELECT_BY_IDS)
+            startOperation();
+
+            final List<Book> books = session.createQuery(SELECT_BY_IDS)
                 .setParameter("ids", ids)
-                .getResultList();
+                .list();
+            
+            tx.commit();
             return books;
-        } catch (final PersistenceException ex)
+        } catch (final HibernateException ex)
         {
+            tx.rollback();
             throw new PersistException(getExceptionMessage(ex));
+        } finally
+        {
+            session.close();
         }
     }
     
@@ -182,6 +206,7 @@ public class BookDatastore extends AbstractDatastore
      * @return 
      * @throws edu.library.exceptions.db.PersistException 
      */
+    @TransactionAttribute(NOT_SUPPORTED)
     public List<Book> getByFilter(final String filterPhrase, final Long filterGenreId,
             final SortBy sort, final SortOrder sortOrder) throws PersistException
     {
@@ -215,7 +240,8 @@ public class BookDatastore extends AbstractDatastore
         // Выполняем SQL-запрос
         try
         {
-            final Query query = entityManager.createQuery(sql, Book.class);
+            startOperation();
+            final Query query = session.createQuery(sql);
             
             // Заполняем SQL-запрос параметрами
             if (isByFlexiblePhrase)
@@ -227,11 +253,18 @@ public class BookDatastore extends AbstractDatastore
             {
                 query.setParameter("genre_id", filterGenreId);
             }
-
-            return query.getResultList();
-        } catch (final PersistenceException ex)
+            
+            final List<Book> books = query.list();
+            
+            tx.commit();
+            return books;
+        } catch (final HibernateException ex)
         {
+            tx.rollback();
             throw new PersistException(getExceptionMessage(ex));
+        } finally
+        {
+            session.close();
         }
     }
     
@@ -241,16 +274,23 @@ public class BookDatastore extends AbstractDatastore
      * @throws edu.library.exceptions.db.PersistException
      * @throws edu.library.exceptions.ValidationException
      */
+    @TransactionAttribute(NOT_SUPPORTED)
     public void create(final Book book) throws PersistException, ValidationException
     {
         validate(book);
         
         try
         {
-            entityManager.persist(book);
-        } catch (final PersistenceException ex)
+            startOperation();
+            session.save(book);
+            tx.commit();
+        } catch (final HibernateException ex)
         {
+            tx.rollback();
             throw new PersistException(getExceptionMessage(ex));
+        } finally
+        {
+            session.close();
         }
     }
     
@@ -260,16 +300,23 @@ public class BookDatastore extends AbstractDatastore
      * @throws edu.library.exceptions.db.PersistException
      * @throws edu.library.exceptions.ValidationException
      */
+    @TransactionAttribute(NOT_SUPPORTED)
     public void update(final Book book) throws PersistException, ValidationException
     {
         validate(book);
-        
+
         try
         {
-            entityManager.merge(book);
-        } catch (final PersistenceException ex)
+            startOperation();
+            session.update(book);
+            tx.commit();
+        } catch (final HibernateException | ConstraintViolationException ex)
         {
+            tx.rollback();
             throw new PersistException(getExceptionMessage(ex));
+        } finally
+        {
+            session.close();
         }
     }
     
@@ -277,19 +324,26 @@ public class BookDatastore extends AbstractDatastore
      * Удаляет запись об объекте из базы данных
      * @param id
      * @throws edu.library.exceptions.db.PersistException
-     */ 
+     */
+    @TransactionAttribute(NOT_SUPPORTED)
     public void delete(final Long id) throws PersistException
     {
         if (id == null) return;
 
         try
         {
-            entityManager.createQuery(DELETE)
+            startOperation();
+            session.createQuery(DELETE)
                 .setParameter("id", id)
                 .executeUpdate();
-        } catch (final PersistenceException ex)
+            tx.commit();
+        } catch (final HibernateException ex)
         {
+            tx.rollback();
             throw new PersistException(getExceptionMessage(ex));
+        } finally
+        {
+            session.close();
         }
     }
     
@@ -297,19 +351,26 @@ public class BookDatastore extends AbstractDatastore
      * Удаляет запись об объектах из базы данных
      * @param ids
      * @throws edu.library.exceptions.db.PersistException
-     */ 
+     */
+    @TransactionAttribute(NOT_SUPPORTED)
     public void delete(final List<Long> ids) throws PersistException
     {
         if (ids == null) return;
 
         try
         {
-            entityManager.createQuery(DELETE_BY_IDS)
-                .setParameter("ids", ids)
+            startOperation();
+            session.createQuery(DELETE_BY_IDS)
+                .setParameterList("ids", ids)
                 .executeUpdate();
-        } catch (final PersistenceException ex)
+            tx.commit();
+        } catch (final HibernateException ex)
         {
+            tx.rollback();
             throw new PersistException(getExceptionMessage(ex));
+        } finally
+        {
+            session.close();
         }
     }
     
@@ -319,18 +380,25 @@ public class BookDatastore extends AbstractDatastore
      * @param ids 
      * @throws edu.library.exceptions.db.PersistException 
      */
+    @TransactionAttribute(NOT_SUPPORTED)
     public void copy(final List<Long> ids) throws PersistException
     {
         if (ids == null) return;
 
         try
         {
-            entityManager.createNativeQuery(COPY_BOOKS)
-                .setParameter("ids", ids)
+            startOperation();
+            session.createSQLQuery(COPY_BOOKS)
+                .setParameterList("ids", ids)
                 .executeUpdate();
-        } catch (final PersistenceException ex)
+            tx.commit();
+        } catch (final HibernateException ex)
         {
+            tx.rollback();
             throw new PersistException(getExceptionMessage(ex));
+        } finally
+        {
+            session.close();
         }
     }
     

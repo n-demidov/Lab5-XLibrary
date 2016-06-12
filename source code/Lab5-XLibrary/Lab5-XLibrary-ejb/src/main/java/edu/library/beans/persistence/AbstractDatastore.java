@@ -6,6 +6,10 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
+import org.hibernate.HibernateException;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 
 public class AbstractDatastore
 {
@@ -13,6 +17,22 @@ public class AbstractDatastore
     private static final ValidatorFactory validationFactory
             = Validation.buildDefaultValidatorFactory();
     private static final Validator validator = validationFactory.getValidator();
+    
+    private final SessionFactory sessionFactory = HibernateSessionFactory.getSessionFactory();
+    
+    protected Session session;
+    protected Transaction tx;
+    
+    
+    /**
+     * Подготавливает сессию и транзакцию
+     * @throws HibernateException 
+     */
+    protected void startOperation() throws HibernateException
+    {
+        session = sessionFactory.openSession();
+        tx = session.beginTransaction();
+    }
     
     /**
      * Выбрасывает исключение PersistException

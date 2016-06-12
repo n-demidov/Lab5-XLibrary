@@ -24,7 +24,6 @@ public class BookServlet extends AbstractServlet
 
     private static final String PAGE_TYPE = "type", PAGE_TYPE_ADD = "add";
     
-    private static final String ERR_EMPTY = " (незаполнено)";
     private static final String PAGE_COUNT_ERR = "Неправильный формат количества страниц";
     private static final String GENRE_ERR = "Неправильный формат жанра";
     private static final String GENRE_ID = "genre_id";
@@ -64,12 +63,9 @@ public class BookServlet extends AbstractServlet
                 book = bookDatastore.get(bookId);
                 isAddBook = false;
             }
-        } catch (final NumberFormatException | PersistException ex)
+        } catch (final NumberFormatException | PersistException | NoSuchEntityInDB ex)
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
-            request.setAttribute("errMsg", ex.getMessage());
-        } catch (final NoSuchEntityInDB ex)
-        {
             response.sendRedirect(Constants.REDIRECT_BOOKS_PAGE);
         }
         forwardToJSP(request, response, book, isAddBook);
@@ -184,24 +180,6 @@ public class BookServlet extends AbstractServlet
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
             
             request.setAttribute("errMsg", ex.getMessage());
-        }
-    }
-
-    // Парсит число из строки
-    private int parseInt(final String parsedString, final String errDescr) 
-            throws ParseIntException
-    {
-        try
-        {
-            if (parsedString == null || parsedString.trim().isEmpty())
-            {
-                throw new ParseIntException(errDescr + ": " + ERR_EMPTY);
-            }
-            
-            return Integer.parseInt(parsedString);
-        } catch (final NumberFormatException ex)
-        {
-            throw new ParseIntException(errDescr + ": " + parsedString);
         }
     }
 

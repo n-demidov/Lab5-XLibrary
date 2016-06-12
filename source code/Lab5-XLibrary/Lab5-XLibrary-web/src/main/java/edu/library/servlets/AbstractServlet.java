@@ -1,10 +1,13 @@
 package edu.library.servlets;
 
+import edu.library.exceptions.ParseIntException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
 public abstract class AbstractServlet extends HttpServlet
 {
+    
+    private static final String ERR_EMPTY = " (незаполнено)";
     
     // Check is request with enctype multipart/form-data
     protected boolean isMultipartFormData(final HttpServletRequest request)
@@ -23,6 +26,24 @@ public abstract class AbstractServlet extends HttpServlet
                 || "https".equals(request.getScheme()) && request.getServerPort() == 443
                 ? "" : ":" + request.getServerPort()) + request.getRequestURI()
                 + (request.getQueryString() != null ? "?" + request.getQueryString() : "");
+    }
+    
+    // Парсит число из строки
+    protected int parseInt(final String parsedString, final String errDescr) 
+            throws ParseIntException
+    {
+        try
+        {
+            if (parsedString == null || parsedString.trim().isEmpty())
+            {
+                throw new ParseIntException(errDescr + ": " + ERR_EMPTY);
+            }
+            
+            return Integer.parseInt(parsedString);
+        } catch (final NumberFormatException ex)
+        {
+            throw new ParseIntException(errDescr + ": " + parsedString);
+        }
     }
     
 }
