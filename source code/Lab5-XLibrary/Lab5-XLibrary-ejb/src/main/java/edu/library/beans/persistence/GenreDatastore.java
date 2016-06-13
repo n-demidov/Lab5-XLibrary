@@ -7,10 +7,8 @@ import edu.library.exceptions.db.PersistException;
 import java.util.List;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
-import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
-import javax.persistence.PersistenceContext;
-import javax.persistence.PersistenceException;
+import javax.ejb.TransactionAttribute;
+import static javax.ejb.TransactionAttributeType.NOT_SUPPORTED;
 
 /**
  * Объект для управления персистентным состоянием объекта Genre
@@ -22,34 +20,26 @@ public class GenreDatastore extends AbstractDatastore
     
     public static final String GENRE_ID = "id", GENRE_NAME = "name";
     
-    private static final String SELECT_GENRES = "FROM Genre g";
-    private static final String SELECT_GENRE = SELECT_GENRES + " WHERE g.id = :id";
     private static final String DELETE = "DELETE FROM Genre g WHERE g.id = :id";
     
-    private static final String NO_SUCH_ENTITY_IN_DB = "В базе данных нет жанра с id = %d";
+    private static final String CONSTRAINT_ERR ="foreign key constraint fails";
     private static final String CONSTRAINT_VIOLATION_EXCEPTION
             = "Жанр нельзя удалить, т.к. на него ссылаются одна или более книг";
     
-    @PersistenceContext(unitName = "LibraryPU")
-    private EntityManager entityManager;
+    public GenreDatastore()
+    {
+        super();
+    }
     
     /**
      * Возвращает все объекты
      * @return
      * @throws edu.library.exceptions.db.PersistException
      */
+    @TransactionAttribute(NOT_SUPPORTED)
     public List<Genre> getAll() throws PersistException
     {
-        try
-        {
-            final List<Genre> genres = entityManager
-                .createQuery(SELECT_GENRES, Genre.class)
-                .getResultList();
-            return genres;
-        } catch (final PersistenceException ex)
-        {
-            throw new PersistException(getExceptionMessage(ex));
-        }
+        return super.getAll(Genre.class);
     }
     
     /** 
@@ -59,22 +49,10 @@ public class GenreDatastore extends AbstractDatastore
      * @throws edu.library.exceptions.db.NoSuchEntityInDB 
      * @throws edu.library.exceptions.db.PersistException 
      */
+    @TransactionAttribute(NOT_SUPPORTED)
     public Genre get(final Long id) throws NoSuchEntityInDB, PersistException
     {
-        try
-        {
-            final Genre genre = entityManager
-                .createQuery(SELECT_GENRE, Genre.class)
-                .setParameter("id", id)
-                .getSingleResult();
-            return genre;
-        } catch (final NoResultException ex)
-        {
-            throw new NoSuchEntityInDB(String.format(NO_SUCH_ENTITY_IN_DB, id));
-        } catch (final PersistenceException ex)
-        {
-            throw new PersistException(getExceptionMessage(ex));
-        }
+        return (Genre) super.get(Genre.class, id);
     }
     
     /**
@@ -83,17 +61,10 @@ public class GenreDatastore extends AbstractDatastore
      * @throws edu.library.exceptions.db.PersistException
      * @throws edu.library.exceptions.ValidationException
      */
+    @TransactionAttribute(NOT_SUPPORTED)
     public void create(final Genre genre) throws PersistException, ValidationException
     {
-        validate(genre);
-        
-        try
-        {
-            entityManager.persist(genre);
-        } catch (final PersistenceException ex)
-        {
-            throw new PersistException(getExceptionMessage(ex));
-        }
+        super.create(genre);
     }
     
     /**
@@ -102,40 +73,29 @@ public class GenreDatastore extends AbstractDatastore
      * @throws edu.library.exceptions.db.PersistException
      * @throws edu.library.exceptions.ValidationException
      */
+    @TransactionAttribute(NOT_SUPPORTED)
     public void update(final Genre genre) throws PersistException, ValidationException
     {
-        validate(genre);
-        
-        try
-        {
-            entityManager.merge(genre);
-        } catch (final PersistenceException ex)
-        {
-            throw new PersistException(getExceptionMessage(ex));
-        }
+        super.update(genre);
     }
     
     /**
      * Удаляет запись об объекте из базы данных
      * @param id
      * @throws edu.library.exceptions.db.PersistException
-     */ 
+     */
+    @TransactionAttribute(NOT_SUPPORTED)
     public void delete(final Long id) throws PersistException
     {
-        if (id == null) return;
-
         try
         {
-            entityManager.createQuery(DELETE)
-                .setParameter("id", id)
-                .executeUpdate();
-        } catch (final PersistenceException ex)
+            super.delete(Genre.class, id);
+        } catch (final PersistException ex)
         {
-            if (ex.getCause() instanceof org.hibernate.exception.ConstraintViolationException)
+            if (ex.getLocalizedMessage().contains(CONSTRAINT_ERR))
             {
                 throw new PersistException(CONSTRAINT_VIOLATION_EXCEPTION);
             }
-            
             throw new PersistException(getExceptionMessage(ex));
         }
     }

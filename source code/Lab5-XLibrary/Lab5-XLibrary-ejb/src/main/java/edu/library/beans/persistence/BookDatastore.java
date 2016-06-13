@@ -10,11 +10,8 @@ import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import static javax.ejb.TransactionAttributeType.NOT_SUPPORTED;
-import javax.persistence.NoResultException;
-import javax.validation.ConstraintViolationException;
 import org.hibernate.HibernateException;
 import org.hibernate.Query;
-import org.hibernate.TransactionException;
 
 /**
  * Объект для управления персистентным состоянием объекта Book
@@ -32,8 +29,6 @@ public class BookDatastore extends AbstractDatastore
 
     private static final String SELECT_TEMPLATE = "FROM Book b";
     private static final String ORDER_BY_ID = " ORDER BY id";
-    private static final String SELECT_BOOK = SELECT_TEMPLATE + " WHERE b.id = :id";
-    private static final String SELECT_ALL_BOOKS = SELECT_TEMPLATE + ORDER_BY_ID;
     private static final String SELECT_BY_IDS = SELECT_TEMPLATE + " WHERE b.id IN (:ids)"  + ORDER_BY_ID;
 
     private static final String SELECT_BY_FLEXIBLE_PHRASE = SELECT_TEMPLATE
@@ -52,13 +47,10 @@ public class BookDatastore extends AbstractDatastore
             + " page_count, description"
             + " FROM book"
             + " WHERE id IN (:ids)";
-    private static final String DELETE = "DELETE FROM Book b WHERE b.id = :id";
     private static final String DELETE_BY_IDS = "DELETE FROM Book b WHERE b.id IN (:ids)";
 
     private static final String ANY_CHARS = "%";
-    
-    private static final String NO_SUCH_ENTITY_IN_DB = "В базе данных нет книги с id = %d";
-    
+
     // <editor-fold defaultstate="collapsed" desc="Enums for sorting results">
     /**
      * Параметры сортировки книг
@@ -103,6 +95,11 @@ public class BookDatastore extends AbstractDatastore
     }
     // </editor-fold>
     
+    public BookDatastore()
+    {
+        super();
+    }
+    
     /**
      * Возвращает все объекты
      * @return
@@ -111,22 +108,7 @@ public class BookDatastore extends AbstractDatastore
     @TransactionAttribute(NOT_SUPPORTED)
     public List<Book> getAll() throws PersistException
     {
-        try
-        {
-            startOperation();
-            
-            final List<Book> books = session.createQuery(SELECT_ALL_BOOKS).list();
-            
-            tx.commit();
-            return books;
-        } catch (final HibernateException ex)
-        {
-            tx.rollback();
-            throw new PersistException(getExceptionMessage(ex));
-        } finally
-        {
-            session.close();
-        }
+        return super.getAll(Book.class);
     }
     
     /** 
@@ -139,30 +121,7 @@ public class BookDatastore extends AbstractDatastore
     @TransactionAttribute(NOT_SUPPORTED)
     public Book get(final Long id) throws NoSuchEntityInDB, PersistException
     {
-        try
-        {
-            startOperation();
-            
-            final Book book = (Book) session
-                    .createQuery(SELECT_BOOK)
-                    .setParameter("id", id)
-                    .uniqueResult();
-            tx.commit();
-            
-            if (book == null)
-            {
-                throw new NoSuchEntityInDB(String.format(NO_SUCH_ENTITY_IN_DB, id));
-            }
-            
-            return book;
-        } catch (final HibernateException ex)
-        {
-            tx.rollback();
-            throw new PersistException(getExceptionMessage(ex));
-        } finally
-        {
-            session.close();
-        }
+        return (Book) super.get(Book.class, id);
     }
     
     /**
@@ -278,21 +237,7 @@ public class BookDatastore extends AbstractDatastore
     @TransactionAttribute(NOT_SUPPORTED)
     public void create(final Book book) throws PersistException, ValidationException
     {
-        validate(book);
-        
-        try
-        {
-            startOperation();
-            session.save(book);
-            tx.commit();
-        } catch (final HibernateException ex)
-        {
-            tx.rollback();
-            throw new PersistException(getExceptionMessage(ex));
-        } finally
-        {
-            session.close();
-        }
+        super.create(book);
     }
     
     /**
@@ -304,21 +249,7 @@ public class BookDatastore extends AbstractDatastore
     @TransactionAttribute(NOT_SUPPORTED)
     public void update(final Book book) throws PersistException, ValidationException
     {
-        validate(book);
-
-        try
-        {
-            startOperation();
-            session.update(book);
-            tx.commit();
-        } catch (final HibernateException | ConstraintViolationException ex)
-        {
-            tx.rollback();
-            throw new PersistException(getExceptionMessage(ex));
-        } finally
-        {
-            session.close();
-        }
+        super.update(book);
     }
     
     /**
@@ -329,23 +260,7 @@ public class BookDatastore extends AbstractDatastore
     @TransactionAttribute(NOT_SUPPORTED)
     public void delete(final Long id) throws PersistException
     {
-        if (id == null) return;
-
-        try
-        {
-            startOperation();
-            session.createQuery(DELETE)
-                .setParameter("id", id)
-                .executeUpdate();
-            tx.commit();
-        } catch (final HibernateException ex)
-        {
-            tx.rollback();
-            throw new PersistException(getExceptionMessage(ex));
-        } finally
-        {
-            session.close();
-        }
+        super.delete(Book.class, id);
     }
     
     /**
