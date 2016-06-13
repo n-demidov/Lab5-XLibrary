@@ -6,6 +6,7 @@ import edu.library.beans.entity.Book;
 import edu.library.beans.entity.Genre;
 import edu.library.beans.persistence.BookDatastore;
 import edu.library.exceptions.db.PersistException;
+import edu.library.beans.xslt.XSLTConverter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.io.PrintWriter;
@@ -49,6 +50,7 @@ public class BooksServlet extends AbstractServlet
     private static final String FORM_UPLOAD_XML_IMPORT_FILE = "import-xml-file";
     private static final String IMPORT_ERROR = "Во время операции импорта книг возникла ошибка. Проверьте корректность xml-файла";
     private static final String IMPORT_INFO_LIST = "importInfoList";
+    private static final String XSLT_BOOKS = "/xslt/books.xsl";
 
     @EJB
     private BookDatastore bookDatastore;
@@ -58,6 +60,9 @@ public class BooksServlet extends AbstractServlet
 
     @EJB
     private BooksXMLporter booksXMLConverter;
+    
+    @EJB
+    private XSLTConverter xSLTConverter;
 
     private static final Map<String, BookDatastore.SortBy> ORDER_VALUES;  // предопределённые значения сортировки списка книг
 
@@ -139,7 +144,7 @@ public class BooksServlet extends AbstractServlet
                     return;
                 } else if (SHOW_ACTION.equals(action))
                 {
-                    processXSLTRequest(response, bookIds);
+                    showWithXSLT(response, bookIds);
                     return;
                 }
             }
@@ -147,6 +152,10 @@ public class BooksServlet extends AbstractServlet
         {
             Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
             request.setAttribute(ERR_MSG, String.format(ERROR_WHILE_OPERATIONS, ex.getLocalizedMessage()));
+        } catch (final TransformerException ex)
+        {
+            Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
+            request.setAttribute(ERR_MSG, ex.getLocalizedMessage());
         }
 
         // Отрисовываем страницу
@@ -256,31 +265,19 @@ public class BooksServlet extends AbstractServlet
         } catch (final JAXBException ex)
         {
             Logger.getLogger(BooksServlet.class.getName()).log(Level.WARNING, null, ex);
-
             request.setAttribute(ERR_MSG, IMPORT_ERROR);
         }
     }
 
     // Выводит запрошенные книги с помощью XSLT
-    private void processXSLTRequest(final HttpServletResponse response,
-            final List<Long> bookIds)
+    private void showWithXSLT(final HttpServletResponse response,
+            final List<Long> bookIds) throws IOException, TransformerException
     {
-        final String XSLT_BOOKS = "/xslt/books.xsl";
         final String booksXml = booksXMLConverter.exportBooks(bookIds);
+        final PrintWriter out = response.getWriter();
+        final Source xsltTemplate = new StreamSource(getServletContext().getResourceAsStream(XSLT_BOOKS));
 
-        try (final PrintWriter out = response.getWriter())
-        {
-            final TransformerFactory factory = TransformerFactory.newInstance();
-
-            final Source xslt = new StreamSource(getServletContext().getResourceAsStream(XSLT_BOOKS));
-            final Transformer transformer = factory.newTransformer(xslt);
-
-            final Source text = new StreamSource(new StringReader(booksXml));
-            transformer.transform(text, new StreamResult(out));
-        } catch (final IOException | TransformerException ex)
-        {
-            Logger.getLogger(BooksServlet.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        xSLTConverter.convertXMLtoHTML(booksXml, out, xsltTemplate);
     }
 
 }
