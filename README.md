@@ -11,6 +11,8 @@
 2. Если не установлен драйвер MySQL, то установить:
 В папку .../wildfly-9.0.2.Final/modules/system/layers/base/com/ скопировать папку "mysql" (она находится в (/"installing configuration/"). В этой папке уже будут находиться модуль и драйвер.
 
+Скачать драйвер с https://downloads.mysql.com/archives/c-j/ и поместите файл mysql-connector-java-5.1.38-bin.jar в папку из предыдущего пункта (.../mysql/main/).
+
 В консоли открыть /bin/jboss-cli.bat , подключиться (connect), выполнить следующую команду
 /subsystem=datasources/jdbc-driver=mysql:add(\
     driver-name=mysql,\
