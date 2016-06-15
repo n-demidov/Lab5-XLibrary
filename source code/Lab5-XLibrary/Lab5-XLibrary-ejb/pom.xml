@@ -21,16 +21,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>unknown.binary</groupId>
-            <artifactId>hibernate-jpamodelgen-4.3.1.Final</artifactId>
-            <version>SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>javax</groupId>
             <artifactId>javaee-api</artifactId>
             <version>7.0</version>
-            <scope>provided</scope>
         </dependency>
         
         <dependency>
@@ -43,15 +36,6 @@
             <artifactId>hibernate-core</artifactId>
             <version>4.1.12.Final</version>
         </dependency>
-        
-        <!-- MySQL -->
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>5.1.20</version>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
 
     <build>
