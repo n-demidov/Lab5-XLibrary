@@ -1,9 +1,9 @@
-Online Library
+﻿Online Library
 
 - реализован функционал импорта\экспорта XML;
 - добавлен просмотр сущностей с помощью преобразования XML в HTML с помощью XSLT
 
-####Использованные технологии: EJB3, Hibernate, Bean Validation, WildFly 9, Maven
+Использованные технологии: EJB3, Hibernate, Bean Validation, WildFly 9, Maven
 
 ####Инструкция по натройке
 (Все файлы, используемые при настройке находтся в папке `/installing configuration/`)
