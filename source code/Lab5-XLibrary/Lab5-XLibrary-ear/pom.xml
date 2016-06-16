@@ -7,9 +7,7 @@
     <version>1.0.0</version>
   </parent>
 
-    <groupId>edu.library</groupId>
     <artifactId>Lab5-XLibrary-ear</artifactId>
-    <version>1.0.0</version>
     <packaging>ear</packaging>
 
     <name>Lab5-XLibrary-ear</name>
