@@ -18,8 +18,6 @@ import static javax.ejb.TransactionAttributeType.NOT_SUPPORTED;
 public class GenreDatastore extends AbstractDatastore
 {
     
-    public static final String GENRE_ID = "id", GENRE_NAME = "name";
-    
     private static final String DELETE = "DELETE FROM Genre g WHERE g.id = :id";
     
     private static final String CONSTRAINT_ERR ="foreign key constraint fails";

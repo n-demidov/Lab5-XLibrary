@@ -1,16 +1,16 @@
 package edu.library.servlets;
 
-import edu.library.beans.persistence.GenreDatastore;
 import edu.library.beans.xml.converter.BooksXMLporter;
 import edu.library.beans.entity.Book;
 import edu.library.beans.entity.Genre;
 import edu.library.beans.persistence.BookDatastore;
 import edu.library.exceptions.db.PersistException;
 import edu.library.beans.xslt.XSLTConverter;
+import edu.library.domain.GenresDomain;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.io.PrintWriter;
-import java.io.StringReader;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,10 +25,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 import javax.xml.bind.JAXBException;
 import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
 @WebServlet(name = "Books", urlPatterns ={"/books"})
@@ -53,10 +50,10 @@ public class BooksServlet extends AbstractServlet
     private static final String XSLT_BOOKS = "/xslt/books.xsl";
 
     @EJB
-    private BookDatastore bookDatastore;
+    private BookDatastore booksDomain;
 
     @EJB
-    private GenreDatastore genreDatastore;
+    private GenresDomain genresDomain;
 
     @EJB
     private BooksXMLporter booksXMLConverter;
@@ -134,10 +131,10 @@ public class BooksServlet extends AbstractServlet
                 // Выполняем действие
                 if (DELETE_ACTION.equals(action))
                 {
-                    bookDatastore.delete(bookIds);
+                    booksDomain.delete(bookIds);
                 } else if (COPY_ACTION.equals(action))
                 {
-                    bookDatastore.copy(bookIds);
+                    booksDomain.copy(bookIds);
                 } else if (EXPORT_ACTION.equals(action))
                 {
                     exportXMLRequest(response, bookIds);
@@ -189,8 +186,8 @@ public class BooksServlet extends AbstractServlet
                     = (genreFilterParam == null || genreFilterParam.length() == 0)
                             ? null : Long.parseLong(genreFilterParam);
 
-            final List<Genre> genres = genreDatastore.getAll();
-            final List<Book> books = bookDatastore.getByFilter(
+            final List<Genre> genres = genresDomain.getAll();
+            final List<Book> books = booksDomain.getByFilter(
                     searchFilter,
                     genreFilter,
                     getSorting(sortingField),

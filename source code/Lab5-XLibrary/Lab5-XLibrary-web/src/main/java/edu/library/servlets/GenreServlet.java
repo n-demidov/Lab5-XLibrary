@@ -1,7 +1,7 @@
 package edu.library.servlets;
 
 import edu.library.Constants;
-import edu.library.beans.persistence.GenreDatastore;
+import edu.library.domain.GenresDomain;
 import edu.library.beans.entity.Genre;
 import edu.library.exceptions.ValidationException;
 import edu.library.exceptions.db.NoSuchEntityInDB;
@@ -19,10 +19,11 @@ import javax.servlet.http.HttpServletResponse;
 public class GenreServlet extends AbstractServlet
 {
     
+	private static final String GENRE_ID = "id", GENRE_NAME = "name";
     private final String PAGE_TYPE = "type", PAGE_TYPE_ADD = "add";
 
     @EJB
-    private GenreDatastore genreDatastore;
+    private GenresDomain genresDomain;
 
     /**
      * Handles the HTTP <code>GET</code> method.
@@ -46,7 +47,7 @@ public class GenreServlet extends AbstractServlet
             {
                 // Во всех остальных случаях - edit
                 final Long genreId = Long.parseLong(request.getParameter("id"));
-                genre = genreDatastore.get(genreId);
+                genre = genresDomain.get(genreId);
                 isAddGenre = false;
             }
         } catch (final NumberFormatException | PersistException ex)
@@ -85,29 +86,29 @@ public class GenreServlet extends AbstractServlet
         try
         {
             final String submitType = request.getParameter("submit_type");
-            final String idString = request.getParameter(GenreDatastore.GENRE_ID);
+            final String idString = request.getParameter(GENRE_ID);
             final Long genreId = idString.isEmpty() ? null : Long.parseLong(idString);
             isAddGenre = (genreId == null);
 
             // Считываем параметры
             genre = new Genre(
                     genreId,
-                    request.getParameter(GenreDatastore.GENRE_NAME));
+                    request.getParameter(GENRE_NAME));
             
             // Если пользователь нажал удалить - удаляем книгу по id
             if (DELETE.equals(submitType))
             {
-                genreDatastore.delete(genreId);
+                genresDomain.delete(genreId);
                 response.sendRedirect(Constants.REDIRECT_GENRES_PAGE);
                 return;
             }
 
             if (isAddGenre)
             {
-                genreDatastore.create(genre);
+                genresDomain.create(genre);
             } else
             {
-                genreDatastore.update(genre);
+                genresDomain.update(genre);
             }
 
             // Перенаправляем польз-ля на нужную ему страницу
@@ -151,7 +152,7 @@ public class GenreServlet extends AbstractServlet
     {
         try
         {
-            final List<Genre> genres = genreDatastore.getAll();
+            final List<Genre> genres = genresDomain.getAll();
             
             request.setAttribute("genre", genre);
             request.setAttribute("genres", genres);

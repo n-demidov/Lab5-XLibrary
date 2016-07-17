@@ -1,6 +1,6 @@
 package edu.library.servlets;
 
-import edu.library.beans.persistence.GenreDatastore;
+import edu.library.domain.GenresDomain;
 import edu.library.beans.entity.Genre;
 import edu.library.exceptions.db.PersistException;
 import java.io.IOException;
@@ -18,7 +18,7 @@ public class GenresServlet extends AbstractServlet
 {
     
     @EJB
-    private GenreDatastore genreDatastore;
+    private GenresDomain genresDomain;
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -37,7 +37,7 @@ public class GenresServlet extends AbstractServlet
             request.setCharacterEncoding("UTF-8");
             
             // Получаем GET-параметр
-            final List<Genre> genres = genreDatastore.getAll();
+            final List<Genre> genres = genresDomain.getAll();
             
             request.setAttribute("genres", genres);
             
