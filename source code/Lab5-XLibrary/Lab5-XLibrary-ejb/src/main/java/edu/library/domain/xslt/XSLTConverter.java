@@ -1,4 +1,4 @@
-package edu.library.beans.xslt;
+package edu.library.domain.xslt;
 
 import java.io.StringReader;
 import java.io.Writer;

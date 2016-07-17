@@ -1,11 +1,13 @@
-package edu.library.beans.xml.rootelement;
+package edu.library.domain.xml.rootelement;
 
-import edu.library.beans.entity.Book;
 import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import edu.library.persistence.entity.Book;
 
 @XmlRootElement(name = "books")
 @XmlAccessorType(XmlAccessType.FIELD)

@@ -1,23 +1,25 @@
 package edu.library.servlets;
 
-import edu.library.Constants;
-import edu.library.beans.persistence.GenreDatastore;
-import edu.library.beans.entity.Book;
-import edu.library.beans.entity.Genre;
-import edu.library.beans.persistence.BookDatastore;
-import edu.library.exceptions.ParseIntException;
-import edu.library.exceptions.ValidationException;
-import edu.library.exceptions.db.NoSuchEntityInDB;
-import edu.library.exceptions.db.PersistException;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.ejb.EJB;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import edu.library.ServletConstants;
+import edu.library.domain.BooksDomain;
+import edu.library.domain.GenresDomain;
+import edu.library.exceptions.ParseIntException;
+import edu.library.exceptions.persistence.NoSuchPersistenceException;
+import edu.library.exceptions.persistence.PersistException;
+import edu.library.exceptions.persistence.ValidException;
+import edu.library.persistence.entity.Book;
+import edu.library.persistence.entity.Genre;
 
 @WebServlet(name = "Book", urlPatterns ={"/book"})
 public class BookServlet extends AbstractServlet
@@ -34,10 +36,10 @@ public class BookServlet extends AbstractServlet
     private static final String BOOK_ID_ERR = "Неправильный формат id книги";
     
     @EJB
-    private BookDatastore bookDatastore;
+    private BooksDomain booksDomain;
     
     @EJB
-    private GenreDatastore genreDatastore;
+    private GenresDomain genresDomain;
 
     /**
      * Обрабатывает запросы пользователя на просмотр страницы редактирование\добавление книги
@@ -61,13 +63,13 @@ public class BookServlet extends AbstractServlet
             {
                 // Во всех остальных случаях - edit
                 final long bookId = Integer.parseInt(request.getParameter("id"));
-                book = bookDatastore.get(bookId);
+                book = booksDomain.get(bookId);
                 isAddBook = false;
             }
-        } catch (final NoSuchEntityInDB | NumberFormatException ex)
+        } catch (final NoSuchPersistenceException | NumberFormatException ex)
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
-            response.sendRedirect(Constants.REDIRECT_BOOKS_PAGE);
+            response.sendRedirect(ServletConstants.REDIRECT_BOOKS_PAGE);
             return;
         } catch (final PersistException ex)
         {
@@ -97,7 +99,7 @@ public class BookServlet extends AbstractServlet
         try
         {
             final String submitType = request.getParameter("submit_type");
-            final String idString = request.getParameter(BookDatastore.BOOK_ID);
+            final String idString = request.getParameter(ServletConstants.BOOK_ID);
             final Long bookId = (idString == null || idString.isEmpty())
                     ? null : Long.parseLong(idString);
             isAddBook = (bookId == null);
@@ -105,7 +107,7 @@ public class BookServlet extends AbstractServlet
             // Заполняем объект книги данными
             if (!isAddBook)
             {
-                book = bookDatastore.get(bookId);
+                book = booksDomain.get(bookId);
             }
             book.setId(bookId);
             fillBookFromRequest(book, request);
@@ -113,18 +115,18 @@ public class BookServlet extends AbstractServlet
             // Если пользователь нажал удалить - удаляем книгу по id
             if (DELETE.equals(submitType))
             {
-                bookDatastore.delete(bookId);
-                response.sendRedirect(Constants.REDIRECT_BOOKS_PAGE);
+                booksDomain.delete(bookId);
+                response.sendRedirect(ServletConstants.REDIRECT_BOOKS_PAGE);
                 return;
             }
 
             // Делаем операции
             if (isAddBook)
             {
-                bookDatastore.create(book);
+                booksDomain.create(book);
             } else
             {
-                bookDatastore.update(book);
+                booksDomain.update(book);
             }
 
             // Перенаправляем польз-ля на нужную ему страницу
@@ -143,17 +145,17 @@ public class BookServlet extends AbstractServlet
                 response.sendRedirect(REDIRECT_ADD_BOOK);       // редирект на страницу добавления
             } else
             {
-                response.sendRedirect(Constants.REDIRECT_BOOKS_PAGE);     // редирект на страницу списка книг
+                response.sendRedirect(ServletConstants.REDIRECT_BOOKS_PAGE);     // редирект на страницу списка книг
             }
-        } catch (final NumberFormatException | ValidationException | PersistException ex)
+        } catch (final NumberFormatException | ValidException | PersistException ex)
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
             
             request.setAttribute("errMsg", ex.getMessage());
             forwardToJSP(request, response, book, isAddBook);
-        } catch (final NoSuchEntityInDB ex)
+        } catch (final NoSuchPersistenceException ex)
         {
-            response.sendRedirect(Constants.REDIRECT_BOOKS_PAGE);
+            response.sendRedirect(ServletConstants.REDIRECT_BOOKS_PAGE);
         }
     }
 
@@ -174,7 +176,7 @@ public class BookServlet extends AbstractServlet
         {
             request.setCharacterEncoding("UTF-8");
             
-            final List<Genre> genres = genreDatastore.getAll();
+            final List<Genre> genres = genresDomain.getAll();
             
             request.setAttribute("genres", genres);
             request.setAttribute("book", book);
@@ -192,22 +194,22 @@ public class BookServlet extends AbstractServlet
 
     // Заполняет экземпляр книги параметрами из запроса
     private void fillBookFromRequest(final Book book, final HttpServletRequest request)
-            throws ValidationException
+            throws ValidException
     {
         boolean isError = false;
         String error = "";
 
-        book.setName(request.getParameter(BookDatastore.BOOK_NAME).trim());
-        book.setAuthor(request.getParameter(BookDatastore.BOOK_AUTHOR).trim());
-        book.setPublisher(request.getParameter(BookDatastore.BOOK_PUBLISHER).trim());
+        book.setName(request.getParameter(ServletConstants.BOOK_NAME).trim());
+        book.setAuthor(request.getParameter(ServletConstants.BOOK_AUTHOR).trim());
+        book.setPublisher(request.getParameter(ServletConstants.BOOK_PUBLISHER).trim());
 
         // Разбираем жанр
         try
         {
             final Long genreId = (long) parseInt(request.getParameter(GENRE_ID), GENRE_ERR);
-            final Genre genre = genreDatastore.get(genreId);
+            final Genre genre = genresDomain.get(genreId);
             book.setGenre(genre);
-        } catch (final NoSuchEntityInDB | ParseIntException | PersistException ex)
+        } catch (final NoSuchPersistenceException | ParseIntException | PersistException ex)
         {
             isError = true;
             error = ex.getLocalizedMessage();
@@ -217,20 +219,20 @@ public class BookServlet extends AbstractServlet
         try
         {
         book.setPageCount(parseInt(
-                request.getParameter(BookDatastore.BOOK_PAGE_COUNT), PAGE_COUNT_ERR));
+                request.getParameter(ServletConstants.BOOK_PAGE_COUNT), PAGE_COUNT_ERR));
         } catch (final ParseIntException ex)
         {
             isError = true;
             error = ex.getLocalizedMessage();
         }
 
-        book.setIsbn(request.getParameter(BookDatastore.BOOK_ISBN).trim());
-        book.setDescription(request.getParameter(BookDatastore.BOOK_DESCRIPTION).trim());
+        book.setIsbn(request.getParameter(ServletConstants.BOOK_ISBN).trim());
+        book.setDescription(request.getParameter(ServletConstants.BOOK_DESCRIPTION).trim());
 
         // Если были ошибки
         if (isError)
         {
-            throw new ValidationException(error);
+            throw new ValidException(error);
         }
     }
     

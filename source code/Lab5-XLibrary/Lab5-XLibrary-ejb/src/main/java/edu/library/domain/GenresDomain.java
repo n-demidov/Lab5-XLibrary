@@ -6,11 +6,11 @@ import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
 
-import edu.library.beans.entity.Genre;
-import edu.library.beans.persistence.GenreDatastore;
-import edu.library.exceptions.ValidationException;
-import edu.library.exceptions.db.NoSuchEntityInDB;
-import edu.library.exceptions.db.PersistException;
+import edu.library.exceptions.persistence.NoSuchPersistenceException;
+import edu.library.exceptions.persistence.PersistException;
+import edu.library.exceptions.persistence.ValidException;
+import edu.library.persistence.dao.GenreDatastore;
+import edu.library.persistence.entity.Genre;
 
 @Stateless
 @LocalBean
@@ -23,7 +23,7 @@ public class GenresDomain {
 		return genreDatastore.getAll();
 	}
 
-	public Genre get(final Long genreId) throws NoSuchEntityInDB, PersistException {
+	public Genre get(final Long genreId) throws NoSuchPersistenceException, PersistException {
 		return genreDatastore.get(genreId);
 	}
 
@@ -31,11 +31,11 @@ public class GenresDomain {
 		genreDatastore.delete(genreId);
 	}
 
-	public void update(final Genre genre) throws PersistException, ValidationException {
+	public void update(final Genre genre) throws PersistException, ValidException {
 		genreDatastore.update(genre);
 	}
 
-	public void create(final Genre genre) throws PersistException, ValidationException {
+	public void create(final Genre genre) throws PersistException, ValidException {
 		genreDatastore.create(genre);
 	}
 

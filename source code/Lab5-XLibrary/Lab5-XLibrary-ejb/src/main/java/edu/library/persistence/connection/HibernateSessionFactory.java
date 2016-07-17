@@ -1,12 +1,13 @@
-package edu.library.beans.persistence;
+package edu.library.persistence.connection;
 
-import edu.library.beans.entity.Book;
-import edu.library.beans.entity.Genre;
 import org.hibernate.HibernateException;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.service.ServiceRegistryBuilder;
+
+import edu.library.persistence.entity.Book;
+import edu.library.persistence.entity.Genre;
 
 public class HibernateSessionFactory
 {

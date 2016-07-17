@@ -1,25 +1,26 @@
 package edu.library.servlets;
 
-import edu.library.Constants;
-import edu.library.domain.GenresDomain;
-import edu.library.beans.entity.Genre;
-import edu.library.exceptions.ValidationException;
-import edu.library.exceptions.db.NoSuchEntityInDB;
-import edu.library.exceptions.db.PersistException;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
+
 import javax.ejb.EJB;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import edu.library.ServletConstants;
+import edu.library.domain.GenresDomain;
+import edu.library.exceptions.persistence.NoSuchPersistenceException;
+import edu.library.exceptions.persistence.PersistException;
+import edu.library.exceptions.persistence.ValidException;
+import edu.library.persistence.entity.Genre;
+
 @WebServlet(name = "GenreServlet", urlPatterns ={"/genre"})
 public class GenreServlet extends AbstractServlet
 {
     
-	private static final String GENRE_ID = "id", GENRE_NAME = "name";
     private final String PAGE_TYPE = "type", PAGE_TYPE_ADD = "add";
 
     @EJB
@@ -54,9 +55,9 @@ public class GenreServlet extends AbstractServlet
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
             request.setAttribute("errMsg", ex.getMessage());
-        } catch (final NoSuchEntityInDB ex)
+        } catch (final NoSuchPersistenceException ex)
         {
-            response.sendRedirect(Constants.REDIRECT_GENRES_PAGE);
+            response.sendRedirect(ServletConstants.REDIRECT_GENRES_PAGE);
         }
         forwardToJSP(request, response, genre, isAddGenre);
     }
@@ -86,20 +87,20 @@ public class GenreServlet extends AbstractServlet
         try
         {
             final String submitType = request.getParameter("submit_type");
-            final String idString = request.getParameter(GENRE_ID);
+            final String idString = request.getParameter(ServletConstants.GENRE_ID);
             final Long genreId = idString.isEmpty() ? null : Long.parseLong(idString);
             isAddGenre = (genreId == null);
 
             // Считываем параметры
             genre = new Genre(
                     genreId,
-                    request.getParameter(GENRE_NAME));
+                    request.getParameter(ServletConstants.GENRE_NAME));
             
             // Если пользователь нажал удалить - удаляем книгу по id
             if (DELETE.equals(submitType))
             {
                 genresDomain.delete(genreId);
-                response.sendRedirect(Constants.REDIRECT_GENRES_PAGE);
+                response.sendRedirect(ServletConstants.REDIRECT_GENRES_PAGE);
                 return;
             }
 
@@ -127,9 +128,9 @@ public class GenreServlet extends AbstractServlet
                 response.sendRedirect(REDIRECT_ADD_GENRE);       // редирект на страницу добавления
             } else
             {
-                response.sendRedirect(Constants.REDIRECT_GENRES_PAGE);     // редирект на страницу списка книг
+                response.sendRedirect(ServletConstants.REDIRECT_GENRES_PAGE);     // редирект на страницу списка книг
             }
-        } catch (final NumberFormatException | PersistException | ValidationException ex)
+        } catch (final NumberFormatException | PersistException | ValidException ex)
         {
             java.util.logging.Logger.getLogger(BookServlet.class.getName()).log(Level.SEVERE, null, ex);
             request.setAttribute("errMsg", ex.getMessage());

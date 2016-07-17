@@ -1,17 +1,19 @@
 package edu.library.servlets;
 
-import edu.library.domain.GenresDomain;
-import edu.library.beans.entity.Genre;
-import edu.library.exceptions.db.PersistException;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.ejb.EJB;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import edu.library.domain.GenresDomain;
+import edu.library.exceptions.persistence.PersistException;
+import edu.library.persistence.entity.Genre;
 
 @WebServlet(name = "GenresServlet", urlPatterns ={"/genres"})
 public class GenresServlet extends AbstractServlet

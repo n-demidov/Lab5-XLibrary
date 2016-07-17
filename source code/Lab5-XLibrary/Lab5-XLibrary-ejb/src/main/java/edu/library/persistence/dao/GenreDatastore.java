@@ -1,14 +1,17 @@
-package edu.library.beans.persistence;
+package edu.library.persistence.dao;
 
-import edu.library.beans.entity.Genre;
-import edu.library.exceptions.ValidationException;
-import edu.library.exceptions.db.NoSuchEntityInDB;
-import edu.library.exceptions.db.PersistException;
+import static javax.ejb.TransactionAttributeType.NOT_SUPPORTED;
+
 import java.util.List;
+
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
-import static javax.ejb.TransactionAttributeType.NOT_SUPPORTED;
+
+import edu.library.exceptions.persistence.NoSuchPersistenceException;
+import edu.library.exceptions.persistence.PersistException;
+import edu.library.exceptions.persistence.ValidException;
+import edu.library.persistence.entity.Genre;
 
 /**
  * Объект для управления персистентным состоянием объекта Genre
@@ -44,11 +47,11 @@ public class GenreDatastore extends AbstractDatastore
      * Возвращает объект соответствующий записи.
      * @param id
      * @return 
-     * @throws edu.library.exceptions.db.NoSuchEntityInDB 
+     * @throws edu.library.exceptions.NoSuchPersistenceException.NoSuchEntityInDB 
      * @throws edu.library.exceptions.db.PersistException 
      */
     @TransactionAttribute(NOT_SUPPORTED)
-    public Genre get(final Long id) throws NoSuchEntityInDB, PersistException
+    public Genre get(final Long id) throws NoSuchPersistenceException, PersistException
     {
         return (Genre) super.get(Genre.class, id);
     }
@@ -57,10 +60,10 @@ public class GenreDatastore extends AbstractDatastore
      * Создает новую запись. Изменяет primary key переданного объекта на сохранённый в БД.
      * @param genre
      * @throws edu.library.exceptions.db.PersistException
-     * @throws edu.library.exceptions.ValidationException
+     * @throws edu.library.exceptions.ValidException
      */
     @TransactionAttribute(NOT_SUPPORTED)
-    public void create(final Genre genre) throws PersistException, ValidationException
+    public void create(final Genre genre) throws PersistException, ValidException
     {
         super.create(genre);
     }
@@ -69,10 +72,10 @@ public class GenreDatastore extends AbstractDatastore
      * Сохраняет состояние объекта в базе данных
      * @param genre
      * @throws edu.library.exceptions.db.PersistException
-     * @throws edu.library.exceptions.ValidationException
+     * @throws edu.library.exceptions.ValidException
      */
     @TransactionAttribute(NOT_SUPPORTED)
-    public void update(final Genre genre) throws PersistException, ValidationException
+    public void update(final Genre genre) throws PersistException, ValidException
     {
         super.update(genre);
     }

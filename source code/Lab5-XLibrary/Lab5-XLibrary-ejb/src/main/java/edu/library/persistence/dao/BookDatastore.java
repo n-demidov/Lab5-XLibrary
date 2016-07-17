@@ -1,17 +1,23 @@
-package edu.library.beans.persistence;
+package edu.library.persistence.dao;
 
-import edu.library.beans.entity.Book;
-import edu.library.exceptions.ValidationException;
-import edu.library.exceptions.db.NoSuchEntityInDB;
-import edu.library.exceptions.db.PersistException;
+import static javax.ejb.TransactionAttributeType.NOT_SUPPORTED;
+
 import java.util.Collections;
 import java.util.List;
+
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
-import static javax.ejb.TransactionAttributeType.NOT_SUPPORTED;
+
 import org.hibernate.HibernateException;
 import org.hibernate.Query;
+
+import edu.library.exceptions.persistence.NoSuchPersistenceException;
+import edu.library.exceptions.persistence.PersistException;
+import edu.library.exceptions.persistence.ValidException;
+import edu.library.persistence.entity.Book;
+import edu.library.persistence.filter.BooksFilter;
+import edu.library.persistence.sorting.BooksSorting;
 
 /**
  * Объект для управления персистентным состоянием объекта Book
@@ -21,12 +27,6 @@ import org.hibernate.Query;
 public class BookDatastore extends AbstractDatastore
 {
     
-    public static final String BOOK_ID = "id", BOOK_NAME = "name",
-            BOOK_AUTHOR = "author", BOOK_PUBLISHER = "publisher",
-            BOOK_ISBN = "isbn", BOOK_PAGE_COUNT = "page_count",
-            BOOK_DESCRIPTION = "description";
-    public static final String BOOK_GENRE_ID = "genre_id", BOOK_GENRE_NAME = "genre_name";
-
     private static final String SELECT_TEMPLATE = "FROM Book b";
     private static final String ORDER_BY_ID = " ORDER BY id";
     private static final String SELECT_BY_IDS = SELECT_TEMPLATE + " WHERE b.id IN (:ids)"  + ORDER_BY_ID;
@@ -50,50 +50,6 @@ public class BookDatastore extends AbstractDatastore
     private static final String DELETE_BY_IDS = "DELETE FROM Book b WHERE b.id IN (:ids)";
 
     private static final String ANY_CHARS = "%";
-
-    // <editor-fold defaultstate="collapsed" desc="Enums for sorting results">
-    /**
-     * Параметры сортировки книг
-     */
-    public enum SortBy
-    {
-        ID ("b.id"),
-        Name ("b.name"),
-        Genre ("genre.name"),
-        Author ("b.author"),
-        Publisher ("b.publisher"),
-        ISBN ("b.isbn"),
-        PageCount ("b.pageCount"),
-        Description ("b.description");
-        
-        private final String name;       
-
-        private SortBy(final String s)
-        {
-            name = s;
-        }
-
-        public boolean equalsName(final String otherName)
-        {
-            return (otherName == null) ? false : name.equals(otherName);
-        }
-
-        @Override
-        public String toString()
-        {
-           return this.name;
-        }
-    }
-    
-    /**
-     * Параметры сортировки книг (в обычном\в обратном)
-     */
-    public enum SortOrder
-    {
-        Asc,
-        Desc
-    }
-    // </editor-fold>
     
     public BookDatastore()
     {
@@ -115,11 +71,11 @@ public class BookDatastore extends AbstractDatastore
      * Возвращает объект соответствующий записи
      * @param id
      * @return 
-     * @throws edu.library.exceptions.db.NoSuchEntityInDB 
+     * @throws edu.library.exceptions.NoSuchPersistenceException.NoSuchEntityInDB 
      * @throws edu.library.exceptions.db.PersistException 
      */
     @TransactionAttribute(NOT_SUPPORTED)
-    public Book get(final Long id) throws NoSuchEntityInDB, PersistException
+    public Book get(final Long id) throws NoSuchPersistenceException, PersistException
     {
         return (Book) super.get(Book.class, id);
     }
@@ -156,62 +112,57 @@ public class BookDatastore extends AbstractDatastore
     }
     
     /**
-     * Гибкий фильтр
-     * Если параметры null - то для них фильтра нет
-     * Если параметр filterGenreId null или 0, то фильтра для жанра не установлено
-     * @param filterPhrase
-     * @param filterGenreId
-     * @param sort
-     * @param sortOrder null (ASC), ASC or DESC values
-     * @return 
-     * @throws edu.library.exceptions.db.PersistException 
+     * Flexible filter.
+	 * If one of parameter specify as null - then no filtering for this parameter.
      */
     @TransactionAttribute(NOT_SUPPORTED)
-    public List<Book> getByFilter(final String filterPhrase, final Long filterGenreId,
-            final SortBy sort, final SortOrder sortOrder) throws PersistException
-    {
-        assert sort != null;
-        
-        // Подготавливаем SQL-запрос
+    public List<Book> getByFilter(final BooksFilter filterParams,
+    		final BooksSorting sortingParams) throws PersistException {
+        // Forming SQL query
         String sql = SELECT_BY_FLEXIBLE_PHRASE;
         boolean isByFlexiblePhrase = false;
         boolean isByGenre = false;
 
-        if (filterPhrase != null && !filterPhrase.trim().isEmpty())
-        {
-            isByFlexiblePhrase = true;
-            sql += WHERE_FLEXIBLE_PHRASE;
-        }
-        if (filterGenreId != null && filterGenreId != 0)
-        {
-            isByGenre = true;
-            sql += WHERE_GENRE_ID;
-        }
-        
-        // Добавляем в запрос сортировку
-        sql += ORDER_BY + sort.toString();
-        
-        // Добавляем прямой\обратный порядок сортировки
-        if (sortOrder != null && sortOrder == SortOrder.Desc)
-        {
-            sql += DESC_SORT_ORDER;
+        if (filterParams != null) {
+        	if (filterParams.getSearchPhrase() != null && !filterParams.getSearchPhrase().trim().isEmpty())
+            {
+        		isByFlexiblePhrase = true;
+                sql += WHERE_FLEXIBLE_PHRASE;
+            }
+        	
+            if (filterParams.getGenrePK() != null && filterParams.getGenrePK() != 0)
+            {
+            	isByGenre = true;
+                sql += WHERE_GENRE_ID;
+            }
         }
         
-        // Выполняем SQL-запрос
+        // Add sorting to query
+        if (sortingParams != null) {
+        	if (sortingParams.getField() != null) {
+        		sql += ORDER_BY + sortingParams.getField().toString();
+        	}
+
+        	if (sortingParams.getOrder() == BooksSorting.SortOrder.Desc) {
+        		sql += DESC_SORT_ORDER;
+        	}
+        }
+
+        // Execute SQL query
         try
         {
             startOperation();
             final Query query = session.createQuery(sql);
             
-            // Заполняем SQL-запрос параметрами
+            // Fill query with parameters
             if (isByFlexiblePhrase)
             {
-                final String in = ANY_CHARS + filterPhrase.trim().replace(" ", ANY_CHARS) + ANY_CHARS;
+                final String in = ANY_CHARS + filterParams.getSearchPhrase().trim().replace(" ", ANY_CHARS) + ANY_CHARS;
                 query.setParameter("phrase", in);
             }
             if (isByGenre)
             {
-                query.setParameter("genre_id", filterGenreId);
+                query.setParameter("genre_id", filterParams.getGenrePK());
             }
             
             final List<Book> books = query.list();
@@ -226,16 +177,16 @@ public class BookDatastore extends AbstractDatastore
         {
             session.close();
         }
-    }
+	}
     
     /**
      * Создает новую запись. Изменяет primary key переданного объекта на сохранённый в БД.
      * @param book
      * @throws edu.library.exceptions.db.PersistException
-     * @throws edu.library.exceptions.ValidationException
+     * @throws edu.library.exceptions.ValidException
      */
     @TransactionAttribute(NOT_SUPPORTED)
-    public void create(final Book book) throws PersistException, ValidationException
+    public void create(final Book book) throws PersistException, ValidException
     {
         super.create(book);
     }
@@ -244,10 +195,10 @@ public class BookDatastore extends AbstractDatastore
      * Сохраняет состояние объекта в базе данных
      * @param book
      * @throws edu.library.exceptions.db.PersistException
-     * @throws edu.library.exceptions.ValidationException
+     * @throws edu.library.exceptions.ValidException
      */
     @TransactionAttribute(NOT_SUPPORTED)
-    public void update(final Book book) throws PersistException, ValidationException
+    public void update(final Book book) throws PersistException, ValidException
     {
         super.update(book);
     }
@@ -317,5 +268,5 @@ public class BookDatastore extends AbstractDatastore
             session.close();
         }
     }
-    
+
 }

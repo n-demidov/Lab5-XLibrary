@@ -1,17 +1,12 @@
-package edu.library.beans.xml.converter;
+package edu.library.domain.xml.converter;
 
-import edu.library.beans.xml.rootelement.Books;
-import edu.library.beans.entity.Book;
-import edu.library.beans.persistence.BookDatastore;
-import edu.library.exceptions.ValidationException;
-import edu.library.exceptions.db.NoSuchEntityInDB;
-import edu.library.exceptions.db.PersistException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
@@ -19,6 +14,13 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+
+import edu.library.domain.xml.rootelement.Books;
+import edu.library.exceptions.persistence.NoSuchPersistenceException;
+import edu.library.exceptions.persistence.PersistException;
+import edu.library.exceptions.persistence.ValidException;
+import edu.library.persistence.dao.BookDatastore;
+import edu.library.persistence.entity.Book;
 
 @Stateless
 @LocalBean
@@ -83,8 +85,6 @@ public class BooksXMLporter
      */
     public List<String> importBooks(final InputStream inputStream) throws JAXBException
     {
-        System.out.println("unConvertBooks");
-        
         final List<String> results = new ArrayList<>();
         final Books books = (Books) booksJaxbUnmarshaller.unmarshal(inputStream);
 
@@ -100,14 +100,14 @@ public class BooksXMLporter
                     results.add(String.format(BOOK_WAS_UPDATED,
                             book.getName(),
                             book.getId()));
-                } catch (final ValidationException ex)
+                } catch (final ValidException ex)
                 {
                     results.add(String.format(BOOK_UPDATING_ERR,
                             book.getName(),
                             book.getId(),
                             ex.getLocalizedMessage()));
                 }
-            } catch (final NoSuchEntityInDB | PersistException e)
+            } catch (final NoSuchPersistenceException | PersistException e)
             {
                 // если книги нет - добавляем
                 try
@@ -116,7 +116,7 @@ public class BooksXMLporter
                     results.add(String.format(BOOK_WAS_ADDED,
                             book.getName(),
                             book.getId()));
-                } catch (final PersistException | ValidationException ex)
+                } catch (final PersistException | ValidException ex)
                 {
                     results.add(String.format(BOOK_ADDING_ERR,
                             book.getName(),

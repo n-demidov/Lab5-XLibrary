@@ -1,4 +1,4 @@
-package edu.library.exceptions.db;
+package edu.library.exceptions.persistence;
 
 import edu.library.exceptions.AbstractLibraryException;
 

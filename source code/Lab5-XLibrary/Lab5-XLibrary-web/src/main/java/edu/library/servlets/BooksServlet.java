@@ -1,21 +1,14 @@
 package edu.library.servlets;
 
-import edu.library.beans.xml.converter.BooksXMLporter;
-import edu.library.beans.entity.Book;
-import edu.library.beans.entity.Genre;
-import edu.library.beans.persistence.BookDatastore;
-import edu.library.exceptions.db.PersistException;
-import edu.library.beans.xslt.XSLTConverter;
-import edu.library.domain.GenresDomain;
-
 import java.io.IOException;
-import java.util.ArrayList;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.ejb.EJB;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
@@ -27,6 +20,16 @@ import javax.xml.bind.JAXBException;
 import javax.xml.transform.Source;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.stream.StreamSource;
+
+import edu.library.domain.BooksDomain;
+import edu.library.domain.GenresDomain;
+import edu.library.domain.xml.converter.BooksXMLporter;
+import edu.library.domain.xslt.XSLTConverter;
+import edu.library.exceptions.persistence.PersistException;
+import edu.library.persistence.entity.Book;
+import edu.library.persistence.entity.Genre;
+import edu.library.persistence.filter.BooksFilter;
+import edu.library.persistence.sorting.BooksSorting;
 
 @WebServlet(name = "Books", urlPatterns ={"/books"})
 @MultipartConfig(fileSizeThreshold = 1024 * 1024 * 1,   // 1MB
@@ -50,7 +53,7 @@ public class BooksServlet extends AbstractServlet
     private static final String XSLT_BOOKS = "/xslt/books.xsl";
 
     @EJB
-    private BookDatastore booksDomain;
+    private BooksDomain booksDomain;
 
     @EJB
     private GenresDomain genresDomain;
@@ -61,19 +64,19 @@ public class BooksServlet extends AbstractServlet
     @EJB
     private XSLTConverter xSLTConverter;
 
-    private static final Map<String, BookDatastore.SortBy> ORDER_VALUES;  // предопределённые значения сортировки списка книг
+    private static final Map<String, BooksSorting.SortBy> ORDER_VALUES;  // предопределённые значения сортировки списка книг
 
     static
     {
         ORDER_VALUES = new LinkedHashMap<>();
-        ORDER_VALUES.put("ID", BookDatastore.SortBy.ID);
-        ORDER_VALUES.put("Название", BookDatastore.SortBy.Name);
-        ORDER_VALUES.put("Жанр", BookDatastore.SortBy.Genre);
-        ORDER_VALUES.put("Автор", BookDatastore.SortBy.Author);
-        ORDER_VALUES.put("Издатель", BookDatastore.SortBy.Publisher);
-        ORDER_VALUES.put("ISBN", BookDatastore.SortBy.ISBN);
-        ORDER_VALUES.put("Кол-во страниц", BookDatastore.SortBy.PageCount);
-        ORDER_VALUES.put("Описание", BookDatastore.SortBy.Description);
+        ORDER_VALUES.put("ID", BooksSorting.SortBy.ID);
+        ORDER_VALUES.put("Название", BooksSorting.SortBy.Name);
+        ORDER_VALUES.put("Жанр", BooksSorting.SortBy.Genre);
+        ORDER_VALUES.put("Автор", BooksSorting.SortBy.Author);
+        ORDER_VALUES.put("Издатель", BooksSorting.SortBy.Publisher);
+        ORDER_VALUES.put("ISBN", BooksSorting.SortBy.ISBN);
+        ORDER_VALUES.put("Кол-во страниц", BooksSorting.SortBy.PageCount);
+        ORDER_VALUES.put("Описание", BooksSorting.SortBy.Description);
     }
 
     /**
@@ -128,7 +131,7 @@ public class BooksServlet extends AbstractServlet
                     bookIds.add(Long.parseLong(bookIdsString[i]));
                 }
 
-                // Выполняем действие
+                // Perfom action
                 if (DELETE_ACTION.equals(action))
                 {
                     booksDomain.delete(bookIds);
@@ -188,11 +191,13 @@ public class BooksServlet extends AbstractServlet
 
             final List<Genre> genres = genresDomain.getAll();
             final List<Book> books = booksDomain.getByFilter(
-                    searchFilter,
-                    genreFilter,
-                    getSorting(sortingField),
-                    UP_SORTING_ORDER.equals(sortingOrder)
-                    ? BookDatastore.SortOrder.Desc : BookDatastore.SortOrder.Asc);
+            		new BooksFilter(
+		            		searchFilter,
+		            		genreFilter),
+            		new BooksSorting(
+            				getSorting(sortingField),
+    	            		UP_SORTING_ORDER.equals(sortingOrder)
+    	                    	? BooksSorting.SortOrder.Desc : BooksSorting.SortOrder.Asc));
 
             request.setAttribute("books", books);
             request.setAttribute("genres", genres);
@@ -208,12 +213,12 @@ public class BooksServlet extends AbstractServlet
     }
 
     // Возвращает сортировку
-    private BookDatastore.SortBy getSorting(final String inputSortField)
+    private BooksSorting.SortBy getSorting(final String inputSortField)
     {
-        BookDatastore.SortBy field = ORDER_VALUES.getOrDefault(inputSortField, null);
+    	BooksSorting.SortBy field = ORDER_VALUES.getOrDefault(inputSortField, null);
         if (field == null)
         {
-            field = BookDatastore.SortBy.ID;
+            field = BooksSorting.SortBy.ID;
         }
         return field;
     }
