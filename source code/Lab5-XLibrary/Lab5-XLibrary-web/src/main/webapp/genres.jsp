@@ -12,11 +12,10 @@
     <h1>Жанры</h1>
     
     <!-- Кнопки добавления -->
-    <div>
-        <a href="genre?type=add" target="_blank">
+    <div class="well">
+        <a href="genre?type=add" target="_blank" class="btn btn-success">
             Добавить жанр
         </a>
-        <hr>
     </div>
     
     <!-- Таблица жанров -->
